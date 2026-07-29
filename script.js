@@ -78,6 +78,14 @@ function toggleHideDevice(deviceId) {
     renderDevicesTable();
 }
 
+// Helper: Check if device is online (seen within last 15 minutes)
+function isDeviceOnline(dev) {
+    if (!dev || !dev.meta?.lastSeen) return false;
+    const lastSeenMs = new Date(dev.meta.lastSeen).getTime();
+    if (isNaN(lastSeenMs)) return false;
+    return (Date.now() - lastSeenMs <= 15 * 60 * 1000);
+}
+
 // Helper: LocalStorage state for Muted Devices (Hides until new activity is logged)
 function getMutedDevicesMap() {
     try {
@@ -98,8 +106,8 @@ function isDeviceMuted(dev) {
     if (!mutedTimestamp) return false;
 
     const lastSeenMs = new Date(dev.meta?.lastSeen || 0).getTime();
-    // If device has logged NEW activity since being muted, auto-unmute it!
-    if (lastSeenMs > mutedTimestamp) {
+    // If device is online OR has logged NEW activity since being muted, auto-unmute it!
+    if (isDeviceOnline(dev) || lastSeenMs > mutedTimestamp) {
         delete mutedMap[dev.deviceId];
         saveMutedDevicesMap(mutedMap);
         return false;
@@ -110,7 +118,7 @@ function isDeviceMuted(dev) {
 function toggleMuteDevice(dev) {
     const mutedMap = getMutedDevicesMap();
     const devId = dev.deviceId;
-    if (isDeviceMuted(dev)) {
+    if (isDeviceOnline(dev) || isDeviceMuted(dev)) {
         delete mutedMap[devId];
     } else {
         const lastSeenMs = new Date(dev.meta?.lastSeen || Date.now()).getTime();
@@ -298,8 +306,7 @@ function updateMetrics(devices) {
     let aggregatedVisits = 0;
 
     devices.forEach(dev => {
-        const lastSeenMs = new Date(dev.meta?.lastSeen || 0).getTime();
-        if (now - lastSeenMs <= fifteenMinMs) {
+        if (isDeviceOnline(dev)) {
             activeCount++;
         }
 
@@ -352,7 +359,7 @@ function renderDevicesTable() {
 
         // Status Filter
         const lastSeenMs = new Date(dev.meta?.lastSeen || 0).getTime();
-        const isOnline = (now - lastSeenMs <= fifteenMinMs);
+        const isOnline = isDeviceOnline(dev);
         const isRecent = (now - lastSeenMs <= 24 * 60 * 60 * 1000);
 
         let matchesStatus = true;
@@ -386,8 +393,7 @@ function renderDevicesTable() {
 
     let rowsHtml = '';
     filtered.forEach(dev => {
-        const lastSeenMs = new Date(dev.meta?.lastSeen || 0).getTime();
-        const isOnline = (now - lastSeenMs <= fifteenMinMs);
+        const isOnline = isDeviceOnline(dev);
         const isBanned = !!dev.isBanned;
         const isHidden = hiddenSet.has(dev.deviceId);
         const isMuted = isDeviceMuted(dev);
@@ -533,9 +539,7 @@ function openDeviceModal(dev) {
     
     document.getElementById('modal-device-id').textContent = dev.deviceId || 'Device Details';
     
-    const now = Date.now();
-    const lastSeenMs = new Date(dev.meta?.lastSeen || 0).getTime();
-    const isOnline = (now - lastSeenMs <= 15 * 60 * 1000);
+    const isOnline = isDeviceOnline(dev);
     const hiddenSet = getHiddenDeviceIds();
     const isHidden = hiddenSet.has(dev.deviceId);
     
