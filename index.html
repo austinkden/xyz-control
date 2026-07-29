@@ -57,25 +57,7 @@
 
         <!-- Dashboard Section (Displayed when signed in) -->
         <section id="dashboard-section" style="display: none;">
-            <!-- Header (NO h1 tag to prevent script.js text cycling collision) -->
-            <div class="ctrl-page-header">
-                <div>
-                    <div class="portal-title">Device Telemetry & Monitoring</div>
-                    <p class="ctrl-page-sub">Real-time telemetry and hardware specs of site visitors</p>
-                </div>
-                <div class="header-actions">
-                    <button id="refresh-btn" class="ctrl-btn secondary-btn" title="Refresh Telemetry Data">
-                        <i data-lucide="refresh-cw"></i>
-                        <span>Refresh</span>
-                    </button>
-                    <button id="export-btn" class="ctrl-btn secondary-btn" title="Export Telemetry as JSON">
-                        <i data-lucide="download"></i>
-                        <span>Export</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Metrics Summary Grid -->
+            <!-- Metrics Summary Grid (3 Counters) -->
             <div class="metrics-grid">
                 <div class="metric-card">
                     <div class="metric-header">
@@ -93,15 +75,6 @@
                     </div>
                     <div id="metric-active-devices" class="metric-value">--</div>
                     <div class="metric-footer">Currently online</div>
-                </div>
-
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <span class="metric-label">Banned Devices</span>
-                        <i data-lucide="hammer"></i>
-                    </div>
-                    <div id="metric-banned-devices" class="metric-value" style="color: var(--error-red);">--</div>
-                    <div class="metric-footer">Restricted devices</div>
                 </div>
 
                 <div class="metric-card">
@@ -151,6 +124,16 @@
                             <div class="custom-dropdown-option" data-value="hidden">Hidden Devices</div>
                         </div>
                     </div>
+
+                    <!-- Action Buttons Next to Dropdowns -->
+                    <button id="refresh-btn" class="ctrl-btn secondary-btn" title="Refresh Telemetry Data">
+                        <i data-lucide="refresh-cw"></i>
+                        <span>Refresh</span>
+                    </button>
+                    <button id="export-btn" class="ctrl-btn secondary-btn" title="Export Telemetry as JSON">
+                        <i data-lucide="download"></i>
+                        <span>Export</span>
+                    </button>
                 </div>
             </div>
 

@@ -289,6 +289,14 @@ function initFirestoreListener() {
                 </tr>
             `;
         });
+
+        // Auto-refresh metrics and table every 30s so relative times & online statuses stay up to date
+        setInterval(() => {
+            if (rawDevices.length > 0) {
+                updateMetrics(rawDevices);
+                renderDevicesTable();
+            }
+        }, 30000);
     } catch (err) {
         console.error('[Control] Listener Init Error:', err);
     }
