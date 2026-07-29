@@ -436,9 +436,24 @@ th,
     align-items: center;
     justify-content: space-between;
     gap: 0.6rem;
-    min-width: 145px;
     transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     box-shadow: none !important;
+}
+
+#btn-type-filter {
+    width: 145px;
+}
+
+#btn-status-filter {
+    width: 160px;
+}
+
+.dropdown-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    text-align: left;
 }
 
 .custom-dropdown-btn:hover,

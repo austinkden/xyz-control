@@ -52,7 +52,7 @@ let rawDevices = [];
 let unsubscribeDevices = null;
 let activeSelectedDevice = null;
 let selectedTypeFilter = 'all';
-let selectedStatusFilter = 'all';
+let selectedStatusFilter = 'default';
 
 // Helper: LocalStorage state for Hidden Devices
 function getHiddenDeviceIds() {
@@ -371,7 +371,11 @@ function renderDevicesTable() {
         const isRecent = (now - lastSeenMs <= 24 * 60 * 60 * 1000);
 
         let matchesStatus = true;
-        if (selectedStatus === 'online') {
+        if (selectedStatus === 'default') {
+            matchesStatus = !isHidden && !isMuted; // Hide hidden AND muted devices from default view
+        } else if (selectedStatus === 'all') {
+            matchesStatus = true; // All Statuses shows everything (hidden, muted, banned, active, etc.)
+        } else if (selectedStatus === 'online') {
             matchesStatus = isOnline && !isHidden && !isMuted;
         } else if (selectedStatus === 'recent') {
             matchesStatus = isRecent && !isHidden && !isMuted;
@@ -381,8 +385,6 @@ function renderDevicesTable() {
             matchesStatus = isBanned;
         } else if (selectedStatus === 'hidden') {
             matchesStatus = isHidden;
-        } else if (selectedStatus === 'all') {
-            matchesStatus = !isHidden && !isMuted; // Hide hidden AND muted devices from default view
         }
 
         return matchesSearch && matchesType && matchesStatus;
