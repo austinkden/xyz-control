@@ -83,7 +83,11 @@ googleLoginBtn.addEventListener('click', async () => {
         await signInWithPopup(auth, googleProvider);
     } catch (error) {
         console.error('[Control] Google Auth Error:', error);
-        loginErrorMsg.textContent = error.message || 'Authentication failed. Please try again.';
+        if (error.code === 'auth/unauthorized-domain') {
+            loginErrorMsg.innerHTML = `<strong>Domain Not Authorized:</strong> <code>control.astrong.xyz</code> is not authorized for Google Auth.<br>Add <code>control.astrong.xyz</code> in <strong>Firebase Console &rarr; Authentication &rarr; Settings &rarr; Authorized domains</strong>.`;
+        } else {
+            loginErrorMsg.textContent = error.message || 'Authentication failed. Please try again.';
+        }
         loginErrorMsg.style.display = 'block';
     } finally {
         googleLoginBtn.disabled = false;
