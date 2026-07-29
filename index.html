@@ -7,18 +7,19 @@
     <meta name="description" content="Device telemetry and security control panel for astrong.xyz">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <!-- Top Navigation Bar -->
     <header class="ctrl-navbar">
         <div class="ctrl-nav-container">
-            <a href="/" class="ctrl-logo" aria-label="Go to Home">
-                <span class="logo-accent">astrong</span><span class="logo-sub">.xyz</span>
+            <a href="https://astrong.xyz/" class="ctrl-logo" aria-label="Go to Home">
+                <span class="logo-brand"><span class="logo-accent">astrong</span><span class="logo-sub">.xyz</span></span>
                 <span class="ctrl-badge">CONTROL</span>
             </a>
             
             <div class="ctrl-nav-right">
-                <a href="/" class="ctrl-nav-link">← Back to Site</a>
+                <a href="https://astrong.xyz/" class="ctrl-nav-link">← Back to Site</a>
                 <div id="auth-state-container" class="auth-state-container">
                     <div class="auth-loading-spinner" id="auth-spinner"></div>
                 </div>
@@ -31,7 +32,7 @@
         <section id="login-section" class="ctrl-card login-card" style="display: none;">
             <div class="login-header">
                 <div class="shield-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield">
                         <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
                     </svg>
                 </div>
@@ -64,11 +65,11 @@
                 </div>
                 <div class="header-actions">
                     <button id="refresh-btn" class="ctrl-btn secondary-btn" title="Refresh Telemetry Data">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                        <i data-lucide="refresh-cw"></i>
                         <span>Refresh</span>
                     </button>
                     <button id="export-btn" class="ctrl-btn secondary-btn" title="Export Telemetry as JSON">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <i data-lucide="download"></i>
                         <span>Export</span>
                     </button>
                 </div>
@@ -79,7 +80,7 @@
                 <div class="metric-card">
                     <div class="metric-header">
                         <span class="metric-label">Total Tracked Devices</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                        <i data-lucide="smartphone"></i>
                     </div>
                     <div id="metric-total-devices" class="metric-value">--</div>
                     <div class="metric-footer">Unique device IDs</div>
@@ -96,17 +97,17 @@
 
                 <div class="metric-card">
                     <div class="metric-header">
-                        <span class="metric-label">Locations / Countries</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                        <span class="metric-label">Banned Devices</span>
+                        <i data-lucide="hammer"></i>
                     </div>
-                    <div id="metric-countries" class="metric-value">--</div>
-                    <div class="metric-footer">Distinct countries</div>
+                    <div id="metric-banned-devices" class="metric-value" style="color: var(--error-red);">--</div>
+                    <div class="metric-footer">Restricted devices</div>
                 </div>
 
                 <div class="metric-card">
                     <div class="metric-header">
                         <span class="metric-label">Total Visits</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <i data-lucide="eye"></i>
                     </div>
                     <div id="metric-total-visits" class="metric-value">--</div>
                     <div class="metric-footer">Aggregated visits</div>
@@ -116,23 +117,40 @@
             <!-- Controls & Filters Toolbar -->
             <div class="controls-bar">
                 <div class="search-box">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <i data-lucide="search"></i>
                     <input type="text" id="search-input" placeholder="Search IP, Device ID, OS, Browser, City, Country..." autocomplete="off">
                 </div>
 
                 <div class="filter-group">
-                    <select id="type-filter" class="ctrl-select">
-                        <option value="all">All Devices</option>
-                        <option value="Desktop">Desktop</option>
-                        <option value="Mobile">Mobile</option>
-                        <option value="Tablet">Tablet</option>
-                    </select>
+                    <!-- Custom Dropdown: Device Type Filter -->
+                    <div class="custom-dropdown" id="dropdown-type">
+                        <button type="button" class="custom-dropdown-btn" id="btn-type-filter" aria-label="Filter by Device Type">
+                            <span class="dropdown-label">All Devices</span>
+                            <i data-lucide="chevron-down" class="custom-dropdown-chevron"></i>
+                        </button>
+                        <div class="custom-dropdown-menu" id="menu-type-filter">
+                            <div class="custom-dropdown-option selected" data-value="all">All Devices</div>
+                            <div class="custom-dropdown-option" data-value="Desktop">Desktop</div>
+                            <div class="custom-dropdown-option" data-value="Mobile">Mobile</div>
+                            <div class="custom-dropdown-option" data-value="Tablet">Tablet</div>
+                        </div>
+                    </div>
 
-                    <select id="status-filter" class="ctrl-select">
-                        <option value="all">All Statuses</option>
-                        <option value="online">Online Now</option>
-                        <option value="recent">Active Today</option>
-                    </select>
+                    <!-- Custom Dropdown: Device Status Filter -->
+                    <div class="custom-dropdown" id="dropdown-status">
+                        <button type="button" class="custom-dropdown-btn" id="btn-status-filter" aria-label="Filter by Status">
+                            <span class="dropdown-label">All Statuses</span>
+                            <i data-lucide="chevron-down" class="custom-dropdown-chevron"></i>
+                        </button>
+                        <div class="custom-dropdown-menu" id="menu-status-filter">
+                            <div class="custom-dropdown-option selected" data-value="all">All Statuses</div>
+                            <div class="custom-dropdown-option" data-value="online">Online Now</div>
+                            <div class="custom-dropdown-option" data-value="recent">Active Today</div>
+                            <div class="custom-dropdown-option" data-value="muted">Muted Devices</div>
+                            <div class="custom-dropdown-option" data-value="banned">Banned Devices</div>
+                            <div class="custom-dropdown-option" data-value="hidden">Hidden Devices</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -172,6 +190,9 @@
                 <div class="modal-title-group">
                     <div class="modal-title" id="modal-device-id">Device Details</div>
                     <span id="modal-status-badge" class="modal-badge">Offline</span>
+                    <span id="modal-muted-badge" class="modal-badge muted" style="display: none;">Muted</span>
+                    <span id="modal-banned-badge" class="modal-badge banned" style="display: none;">Banned</span>
+                    <span id="modal-hidden-badge" class="modal-badge hidden" style="display: none;">Hidden</span>
                 </div>
                 <button id="modal-close-btn" class="ctrl-close-btn" aria-label="Close dialog">&times;</button>
             </div>
@@ -181,6 +202,7 @@
                 <div class="modal-tabs">
                     <button class="tab-btn active" data-tab="tab-overview">Overview</button>
                     <button class="tab-btn" data-tab="tab-hardware">Hardware & GPU</button>
+                    <button class="tab-btn" data-tab="tab-battery">Battery & System</button>
                     <button class="tab-btn" data-tab="tab-network">Network & Geo</button>
                     <button class="tab-btn" data-tab="tab-history">Page History</button>
                     <button class="tab-btn" data-tab="tab-json">Raw JSON</button>
@@ -258,6 +280,36 @@
                         <div class="detail-item full-width">
                             <span class="detail-label">GPU Vendor & Renderer</span>
                             <span id="detail-gpu" class="detail-value mono-text">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Battery & System -->
+                <div id="tab-battery" class="tab-content">
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Battery Level</span>
+                            <span id="detail-battery-level" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Power State</span>
+                            <span id="detail-battery-charging" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Screen Orientation</span>
+                            <span id="detail-orientation" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Color Scheme Pref</span>
+                            <span id="detail-color-scheme" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Reduced Motion</span>
+                            <span id="detail-reduced-motion" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Bot / WebDriver</span>
+                            <span id="detail-bot-status" class="detail-value">--</span>
                         </div>
                     </div>
                 </div>

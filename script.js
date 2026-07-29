@@ -10,6 +10,8 @@ import {
 import { 
     getFirestore, 
     collection, 
+    doc,
+    setDoc,
     onSnapshot, 
     query, 
     orderBy 
@@ -31,7 +33,7 @@ const loginErrorMsg = document.getElementById('login-error');
 
 const metricTotalDevices = document.getElementById('metric-total-devices');
 const metricActiveDevices = document.getElementById('metric-active-devices');
-const metricCountries = document.getElementById('metric-countries');
+const metricBannedDevices = document.getElementById('metric-banned-devices');
 const metricTotalVisits = document.getElementById('metric-total-visits');
 
 const searchInput = document.getElementById('search-input');
@@ -44,11 +46,91 @@ const exportBtn = document.getElementById('export-btn');
 const deviceModal = document.getElementById('device-modal');
 const modalCloseBtn = document.getElementById('modal-close-btn');
 
-// State
+// // State
 let currentUser = null;
 let rawDevices = [];
 let unsubscribeDevices = null;
 let activeSelectedDevice = null;
+let selectedTypeFilter = 'all';
+let selectedStatusFilter = 'all';
+
+// Helper: LocalStorage state for Hidden Devices
+function getHiddenDeviceIds() {
+    try {
+        return new Set(JSON.parse(localStorage.getItem('astrong_ctrl_hidden_devices') || '[]'));
+    } catch (e) {
+        return new Set();
+    }
+}
+
+function saveHiddenDeviceIds(set) {
+    localStorage.setItem('astrong_ctrl_hidden_devices', JSON.stringify(Array.from(set)));
+}
+
+function toggleHideDevice(deviceId) {
+    const hiddenSet = getHiddenDeviceIds();
+    if (hiddenSet.has(deviceId)) {
+        hiddenSet.delete(deviceId);
+    } else {
+        hiddenSet.add(deviceId);
+    }
+    saveHiddenDeviceIds(hiddenSet);
+    renderDevicesTable();
+}
+
+// Helper: LocalStorage state for Muted Devices (Hides until new activity is logged)
+function getMutedDevicesMap() {
+    try {
+        return JSON.parse(localStorage.getItem('astrong_ctrl_muted_devices') || '{}');
+    } catch (e) {
+        return {};
+    }
+}
+
+function saveMutedDevicesMap(map) {
+    localStorage.setItem('astrong_ctrl_muted_devices', JSON.stringify(map));
+}
+
+function isDeviceMuted(dev) {
+    if (!dev || !dev.deviceId) return false;
+    const mutedMap = getMutedDevicesMap();
+    const mutedTimestamp = mutedMap[dev.deviceId];
+    if (!mutedTimestamp) return false;
+
+    const lastSeenMs = new Date(dev.meta?.lastSeen || 0).getTime();
+    // If device has logged NEW activity since being muted, auto-unmute it!
+    if (lastSeenMs > mutedTimestamp) {
+        delete mutedMap[dev.deviceId];
+        saveMutedDevicesMap(mutedMap);
+        return false;
+    }
+    return true;
+}
+
+function toggleMuteDevice(dev) {
+    const mutedMap = getMutedDevicesMap();
+    const devId = dev.deviceId;
+    if (isDeviceMuted(dev)) {
+        delete mutedMap[devId];
+    } else {
+        const lastSeenMs = new Date(dev.meta?.lastSeen || Date.now()).getTime();
+        mutedMap[devId] = lastSeenMs;
+    }
+    saveMutedDevicesMap(mutedMap);
+    renderDevicesTable();
+}
+
+// Helper: Firestore Banning Logic
+async function toggleBanDevice(deviceId, currentBanState) {
+    try {
+        const newBanState = !currentBanState;
+        const deviceRef = doc(db, "devices", deviceId);
+        await setDoc(deviceRef, { isBanned: newBanState, bannedAt: new Date().toISOString() }, { merge: true });
+    } catch (err) {
+        console.error('[Control] Ban device error:', err);
+        alert('Failed to update ban state: ' + err.message);
+    }
+}
 
 // 1. Firebase Authentication Observers & Handlers
 onAuthStateChanged(auth, (user) => {
@@ -60,7 +142,11 @@ onAuthStateChanged(auth, (user) => {
         dashboardSection.style.display = 'block';
         loginErrorMsg.style.display = 'none';
         
-        // Start Live Telemetry Firestore Listener
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+            window.lucide.createIcons();
+        }
+
+        initCustomDropdowns();
         initFirestoreListener();
     } else {
         // Unauthenticated State
@@ -116,6 +202,45 @@ function renderSignedOutNav() {
     `;
 }
 
+// Custom Dropdowns Logic
+function initCustomDropdowns() {
+    const dropdowns = [
+        { id: 'dropdown-type', btnId: 'btn-type-filter', menuId: 'menu-type-filter', onSelect: (val) => { selectedTypeFilter = val; renderDevicesTable(); } },
+        { id: 'dropdown-status', btnId: 'btn-status-filter', menuId: 'menu-status-filter', onSelect: (val) => { selectedStatusFilter = val; renderDevicesTable(); } }
+    ];
+
+    dropdowns.forEach(dd => {
+        const container = document.getElementById(dd.id);
+        const btn = document.getElementById(dd.btnId);
+        const menu = document.getElementById(dd.menuId);
+        if (!container || !btn || !menu) return;
+
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.custom-dropdown').forEach(d => {
+                if (d !== container) d.classList.remove('open');
+            });
+            container.classList.toggle('open');
+        });
+
+        menu.querySelectorAll('.custom-dropdown-option').forEach(opt => {
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                menu.querySelectorAll('.custom-dropdown-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                const label = opt.textContent;
+                btn.querySelector('.dropdown-label').textContent = label;
+                container.classList.remove('open');
+                dd.onSelect(opt.getAttribute('data-value'));
+            });
+        });
+    });
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('open'));
+    });
+}
+
 // 2. Real-time Telemetry Firestore Observer
 function initFirestoreListener() {
     devicesTbody.innerHTML = `
@@ -169,7 +294,7 @@ function updateMetrics(devices) {
     const fifteenMinMs = 15 * 60 * 1000;
     
     let activeCount = 0;
-    let countriesSet = new Set();
+    let bannedCount = 0;
     let aggregatedVisits = 0;
 
     devices.forEach(dev => {
@@ -178,8 +303,8 @@ function updateMetrics(devices) {
             activeCount++;
         }
 
-        if (dev.network?.country && dev.network.country !== 'Unknown') {
-            countriesSet.add(dev.network.country);
+        if (dev.isBanned) {
+            bannedCount++;
         }
 
         const visits = parseInt(dev.meta?.visitCount || 1, 10);
@@ -187,20 +312,25 @@ function updateMetrics(devices) {
     });
 
     metricActiveDevices.textContent = activeCount;
-    metricCountries.textContent = countriesSet.size;
+    if (metricBannedDevices) metricBannedDevices.textContent = bannedCount;
     metricTotalVisits.textContent = aggregatedVisits;
 }
 
-// 4. Render Table with Filters
+// 4. Render Table with Filters & Action Icons
 function renderDevicesTable() {
     const searchTerm = (searchInput.value || '').toLowerCase().trim();
-    const selectedType = typeFilter.value;
-    const selectedStatus = statusFilter.value;
+    const selectedType = selectedTypeFilter;
+    const selectedStatus = selectedStatusFilter;
 
     const now = Date.now();
     const fifteenMinMs = 15 * 60 * 1000;
+    const hiddenSet = getHiddenDeviceIds();
 
     const filtered = rawDevices.filter(dev => {
+        const isHidden = hiddenSet.has(dev.deviceId);
+        const isBanned = !!dev.isBanned;
+        const isMuted = isDeviceMuted(dev);
+
         // Search Filter
         const ip = (dev.network?.ip || '').toLowerCase();
         const devId = (dev.deviceId || '').toLowerCase();
@@ -226,8 +356,19 @@ function renderDevicesTable() {
         const isRecent = (now - lastSeenMs <= 24 * 60 * 60 * 1000);
 
         let matchesStatus = true;
-        if (selectedStatus === 'online') matchesStatus = isOnline;
-        else if (selectedStatus === 'recent') matchesStatus = isRecent;
+        if (selectedStatus === 'online') {
+            matchesStatus = isOnline && !isHidden && !isMuted;
+        } else if (selectedStatus === 'recent') {
+            matchesStatus = isRecent && !isHidden && !isMuted;
+        } else if (selectedStatus === 'muted') {
+            matchesStatus = isMuted;
+        } else if (selectedStatus === 'banned') {
+            matchesStatus = isBanned;
+        } else if (selectedStatus === 'hidden') {
+            matchesStatus = isHidden;
+        } else if (selectedStatus === 'all') {
+            matchesStatus = !isHidden && !isMuted; // Hide hidden AND muted devices from default view
+        }
 
         return matchesSearch && matchesType && matchesStatus;
     });
@@ -247,8 +388,12 @@ function renderDevicesTable() {
     filtered.forEach(dev => {
         const lastSeenMs = new Date(dev.meta?.lastSeen || 0).getTime();
         const isOnline = (now - lastSeenMs <= fifteenMinMs);
-        const statusClass = isOnline ? 'online' : 'offline';
-        const statusLabel = isOnline ? 'Online' : 'Offline';
+        const isBanned = !!dev.isBanned;
+        const isHidden = hiddenSet.has(dev.deviceId);
+        const isMuted = isDeviceMuted(dev);
+
+        const statusClass = isBanned ? 'offline' : (isOnline ? 'online' : 'offline');
+        const statusLabel = isBanned ? 'Banned' : (isOnline ? 'Online' : 'Offline');
 
         const locationStr = (dev.network?.city && dev.network?.city !== 'Unknown')
             ? `${dev.network.city}, ${dev.network.country || ''}`
@@ -258,11 +403,14 @@ function renderDevicesTable() {
         const resStr = `${dev.hardware?.screenWidth || '?'}x${dev.hardware?.screenHeight || '?'}`;
 
         rowsHtml += `
-            <tr>
+            <tr data-device-id="${dev.deviceId}">
                 <td>
-                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
                         <span class="status-dot ${statusClass}" title="${statusLabel}"></span>
                         <span style="font-size: 0.8rem; color: var(--text-secondary);">${statusLabel}</span>
+                        ${isBanned ? '<span class="badge-banned">Banned</span>' : ''}
+                        ${isMuted ? '<span class="badge-muted">Muted</span>' : ''}
+                        ${isHidden ? '<span class="badge-hidden">Hidden</span>' : ''}
                     </div>
                 </td>
                 <td>
@@ -289,7 +437,20 @@ function renderDevicesTable() {
                     <span class="mono-text" style="font-weight: 600;">${dev.meta?.visitCount || 1}</span>
                 </td>
                 <td>
-                    <button class="ctrl-btn view-btn" data-device-id="${dev.deviceId}">View Details</button>
+                    <div class="action-buttons-group">
+                        <button class="act-btn ban-btn ${isBanned ? 'active' : ''}" data-device-id="${dev.deviceId}" data-banned="${isBanned}" title="${isBanned ? 'Unban Device' : 'Ban Device'}">
+                            <i data-lucide="hammer"></i>
+                        </button>
+                        <button class="act-btn mute-btn ${isMuted ? 'active' : ''}" data-device-id="${dev.deviceId}" title="${isMuted ? 'Unmute Device' : 'Mute until next activity'}">
+                            <i data-lucide="bell-off"></i>
+                        </button>
+                        <button class="act-btn hide-btn ${isHidden ? 'active' : ''}" data-device-id="${dev.deviceId}" title="${isHidden ? 'Unhide Device' : 'Hide Device'}">
+                            <i data-lucide="x"></i>
+                        </button>
+                        <button class="act-btn more-btn" data-device-id="${dev.deviceId}" title="View Details (More)">
+                            <i data-lucide="ellipsis"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -297,10 +458,47 @@ function renderDevicesTable() {
 
     devicesTbody.innerHTML = rowsHtml;
 
-    // Attach View Details Click Handlers
-    devicesTbody.querySelectorAll('.view-btn').forEach(btn => {
+    // Render Lucide Icons
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+    }
+
+    // Attach Event Handlers for Action Buttons
+    devicesTbody.querySelectorAll('.ban-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const devId = e.currentTarget.getAttribute('data-device-id');
+            e.stopPropagation();
+            const devId = btn.getAttribute('data-device-id');
+            const isBanned = btn.getAttribute('data-banned') === 'true';
+            const actionText = isBanned ? 'unban' : 'ban';
+            if (confirm(`Are you sure you want to ${actionText} device ${devId}?`)) {
+                toggleBanDevice(devId, isBanned);
+            }
+        });
+    });
+
+    devicesTbody.querySelectorAll('.mute-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const devId = btn.getAttribute('data-device-id');
+            const targetDev = rawDevices.find(d => d.deviceId === devId);
+            if (targetDev) {
+                toggleMuteDevice(targetDev);
+            }
+        });
+    });
+
+    devicesTbody.querySelectorAll('.hide-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const devId = btn.getAttribute('data-device-id');
+            toggleHideDevice(devId);
+        });
+    });
+
+    devicesTbody.querySelectorAll('.more-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const devId = btn.getAttribute('data-device-id');
             const targetDev = rawDevices.find(d => d.deviceId === devId);
             if (targetDev) {
                 openDeviceModal(targetDev);
@@ -338,10 +536,23 @@ function openDeviceModal(dev) {
     const now = Date.now();
     const lastSeenMs = new Date(dev.meta?.lastSeen || 0).getTime();
     const isOnline = (now - lastSeenMs <= 15 * 60 * 1000);
+    const hiddenSet = getHiddenDeviceIds();
+    const isHidden = hiddenSet.has(dev.deviceId);
+    
+    const isMuted = isDeviceMuted(dev);
     
     const badge = document.getElementById('modal-status-badge');
     badge.textContent = isOnline ? 'Online' : 'Offline';
     badge.className = `modal-badge ${isOnline ? 'online' : ''}`;
+
+    const mutedBadge = document.getElementById('modal-muted-badge');
+    if (mutedBadge) mutedBadge.style.display = isMuted ? 'inline-block' : 'none';
+
+    const bannedBadge = document.getElementById('modal-banned-badge');
+    if (bannedBadge) bannedBadge.style.display = dev.isBanned ? 'inline-block' : 'none';
+
+    const hiddenBadge = document.getElementById('modal-hidden-badge');
+    if (hiddenBadge) hiddenBadge.style.display = isHidden ? 'inline-block' : 'none';
 
     // Overview Tab
     document.getElementById('detail-device-id').textContent = dev.deviceId || '--';
@@ -362,6 +573,16 @@ function openDeviceModal(dev) {
     document.getElementById('detail-ram').textContent = `${dev.hardware?.deviceMemoryGB} GB`;
     document.getElementById('detail-touch-points').textContent = dev.hardware?.maxTouchPoints;
     document.getElementById('detail-gpu').textContent = `${dev.hardware?.gpuVendor || 'Unknown'} / ${dev.hardware?.gpuRenderer || 'Unknown'}`;
+
+    // Battery & System Tab
+    const battLevel = dev.battery?.level != null ? `${dev.battery.level}%` : 'Not Available';
+    const battCharging = dev.battery?.charging != null ? (dev.battery.charging ? 'Charging ⚡' : 'On Battery 🔋') : 'Not Available';
+    document.getElementById('detail-battery-level').textContent = battLevel;
+    document.getElementById('detail-battery-charging').textContent = battCharging;
+    document.getElementById('detail-orientation').textContent = dev.preferences?.orientation || 'Unknown';
+    document.getElementById('detail-color-scheme').textContent = dev.preferences?.colorScheme ? dev.preferences.colorScheme.toUpperCase() : 'Unknown';
+    document.getElementById('detail-reduced-motion').textContent = dev.preferences?.reducedMotion != null ? (dev.preferences.reducedMotion ? 'Enabled' : 'Disabled') : 'Disabled';
+    document.getElementById('detail-bot-status').textContent = dev.browser?.webdriver ? 'Automated WebDriver Bot 🤖' : 'Normal User Browser';
 
     // Network Tab
     document.getElementById('detail-ip').textContent = dev.network?.ip || '--';
@@ -423,12 +644,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 
 // 7. Event Listeners for Filters & Controls
 searchInput.addEventListener('input', renderDevicesTable);
-typeFilter.addEventListener('change', renderDevicesTable);
-statusFilter.addEventListener('change', renderDevicesTable);
 
 refreshBtn.addEventListener('click', () => {
     renderDevicesTable();
-    if (window.showToast) window.showToast('Device telemetry refreshed');
 });
 
 exportBtn.addEventListener('click', () => {
@@ -441,3 +659,4 @@ exportBtn.addEventListener('click', () => {
     downloadAnchor.click();
     downloadAnchor.remove();
 });
+
