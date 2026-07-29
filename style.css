@@ -665,6 +665,12 @@ th,
     background-color: rgba(245, 158, 11, 0.12);
 }
 
+.act-btn.delete-btn:hover {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.4);
+    background-color: rgba(239, 68, 68, 0.12);
+}
+
 .act-btn.more-btn:hover {
     color: var(--accent-purple);
     border-color: rgba(136, 89, 255, 0.4);

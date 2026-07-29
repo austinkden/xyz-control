@@ -12,6 +12,7 @@ import {
     collection, 
     doc,
     setDoc,
+    deleteDoc,
     onSnapshot, 
     query, 
     orderBy 
@@ -137,6 +138,28 @@ async function toggleBanDevice(deviceId, currentBanState) {
     } catch (err) {
         console.error('[Control] Ban device error:', err);
         alert('Failed to update ban state: ' + err.message);
+    }
+}
+
+// Helper: Firestore Deletion Logic
+async function deleteDeviceRecord(deviceId) {
+    try {
+        const deviceRef = doc(db, "devices", deviceId);
+        await deleteDoc(deviceRef);
+
+        const hiddenSet = getHiddenDeviceIds();
+        if (hiddenSet.has(deviceId)) {
+            hiddenSet.delete(deviceId);
+            saveHiddenDeviceIds(hiddenSet);
+        }
+        const mutedMap = getMutedDevicesMap();
+        if (mutedMap[deviceId]) {
+            delete mutedMap[deviceId];
+            saveMutedDevicesMap(mutedMap);
+        }
+    } catch (err) {
+        console.error('[Control] Delete device error:', err);
+        alert('Failed to delete device record: ' + err.message);
     }
 }
 
@@ -463,6 +486,9 @@ function renderDevicesTable() {
                         <button class="act-btn hide-btn ${isHidden ? 'active' : ''}" data-device-id="${dev.deviceId}" title="${isHidden ? 'Unhide Device' : 'Hide Device'}">
                             <i data-lucide="x"></i>
                         </button>
+                        <button class="act-btn delete-btn" data-device-id="${dev.deviceId}" title="Permanently Delete Device Record">
+                            <i data-lucide="trash-2"></i>
+                        </button>
                         <button class="act-btn more-btn" data-device-id="${dev.deviceId}" title="View Details (More)">
                             <i data-lucide="ellipsis"></i>
                         </button>
@@ -508,6 +534,16 @@ function renderDevicesTable() {
             e.stopPropagation();
             const devId = btn.getAttribute('data-device-id');
             toggleHideDevice(devId);
+        });
+    });
+
+    devicesTbody.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const devId = btn.getAttribute('data-device-id');
+            if (confirm(`Are you sure you want to PERMANENTLY delete device record ${devId} from Firestore? This action cannot be undone.`)) {
+                deleteDeviceRecord(devId);
+            }
         });
     });
 
