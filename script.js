@@ -47,13 +47,15 @@ const exportBtn = document.getElementById('export-btn');
 const deviceModal = document.getElementById('device-modal');
 const modalCloseBtn = document.getElementById('modal-close-btn');
 
-// // State
+// State
 let currentUser = null;
 let rawDevices = [];
 let unsubscribeDevices = null;
 let activeSelectedDevice = null;
 let selectedTypeFilter = 'all';
 let selectedStatusFilter = 'default';
+let currentSortKey = 'lastSeen';
+let currentSortOrder = 'desc';
 
 // Helper: LocalStorage state for Hidden Devices
 function getHiddenDeviceIds() {
@@ -178,6 +180,8 @@ onAuthStateChanged(auth, (user) => {
         }
 
         initCustomDropdowns();
+        initTableSorting();
+        updateSortHeaderUI();
         initFirestoreListener();
     } else {
         // Unauthenticated State
@@ -354,6 +358,95 @@ function updateMetrics(devices) {
     metricTotalVisits.textContent = aggregatedVisits;
 }
 
+// Table Sorting Functions
+function getSortValue(dev, sortKey) {
+    const isOnline = isDeviceOnline(dev);
+    const isBanned = !!dev.isBanned;
+    const isHidden = getHiddenDeviceIds().has(dev.deviceId);
+    const isMuted = isDeviceMuted(dev);
+    const currentAdminDeviceId = localStorage.getItem('astrong_device_id');
+    const isInControl = currentUser && dev.deviceId && (dev.deviceId === currentAdminDeviceId);
+
+    switch (sortKey) {
+        case 'status':
+            if (isInControl) return 1;
+            if (isOnline) return 2;
+            if (isMuted) return 3;
+            if (isBanned) return 4;
+            if (isHidden) return 5;
+            return 6;
+        case 'device':
+            return (dev.deviceType || '').toLowerCase() + (dev.deviceId || '').toLowerCase();
+        case 'location':
+            return (dev.network?.ip || '').toLowerCase() + (dev.network?.country || '').toLowerCase();
+        case 'os':
+            return (dev.operatingSystem?.name || '').toLowerCase() + (dev.browser?.name || '').toLowerCase();
+        case 'lastSeen':
+            return new Date(dev.meta?.lastSeen || 0).getTime();
+        case 'visits':
+            return parseInt(dev.meta?.visitCount || 1, 10);
+        default:
+            return 0;
+    }
+}
+
+function sortDevices(devices) {
+    return devices.slice().sort((a, b) => {
+        const valA = getSortValue(a, currentSortKey);
+        const valB = getSortValue(b, currentSortKey);
+
+        let comparison = 0;
+        if (typeof valA === 'number' && typeof valB === 'number') {
+            comparison = valA - valB;
+        } else {
+            comparison = String(valA).localeCompare(String(valB));
+        }
+
+        return currentSortOrder === 'asc' ? comparison : -comparison;
+    });
+}
+
+function initTableSorting() {
+    document.querySelectorAll('.devices-table th.sortable-th').forEach(th => {
+        th.addEventListener('click', () => {
+            const sortKey = th.getAttribute('data-sort');
+            if (currentSortKey === sortKey) {
+                currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortKey = sortKey;
+                currentSortOrder = (sortKey === 'lastSeen' || sortKey === 'visits') ? 'desc' : 'asc';
+            }
+            updateSortHeaderUI();
+            renderDevicesTable();
+        });
+    });
+}
+
+function updateSortHeaderUI() {
+    document.querySelectorAll('.devices-table th.sortable-th').forEach(th => {
+        const sortKey = th.getAttribute('data-sort');
+        const icon = th.querySelector('.sort-icon');
+
+        if (sortKey === currentSortKey) {
+            th.classList.add('active-sort');
+            th.classList.remove('asc', 'desc');
+            th.classList.add(currentSortOrder);
+            if (icon) {
+                icon.setAttribute('data-lucide', currentSortOrder === 'asc' ? 'arrow-up' : 'arrow-down');
+            }
+        } else {
+            th.classList.remove('active-sort', 'asc', 'desc');
+            if (icon) {
+                icon.setAttribute('data-lucide', 'arrow-up-down');
+            }
+        }
+    });
+
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+    }
+}
+
 // 4. Render Table with Filters & Action Icons
 function renderDevicesTable() {
     const searchTerm = (searchInput.value || '').toLowerCase().trim();
@@ -361,7 +454,6 @@ function renderDevicesTable() {
     const selectedStatus = selectedStatusFilter;
 
     const now = Date.now();
-    const fifteenMinMs = 15 * 60 * 1000;
     const hiddenSet = getHiddenDeviceIds();
 
     const filtered = rawDevices.filter(dev => {
@@ -416,7 +508,7 @@ function renderDevicesTable() {
     if (filtered.length === 0) {
         devicesTbody.innerHTML = `
             <tr>
-                <td colspan="8" class="table-loading-cell">
+                <td colspan="7" class="table-loading-cell">
                     No devices match the current filters.
                 </td>
             </tr>
@@ -424,29 +516,31 @@ function renderDevicesTable() {
         return;
     }
 
+    const sortedDevicesList = sortDevices(filtered);
+
     let rowsHtml = '';
-    filtered.forEach(dev => {
+    sortedDevicesList.forEach(dev => {
+        const currentAdminDeviceId = localStorage.getItem('astrong_device_id');
+        const isInControl = currentUser && dev.deviceId && (dev.deviceId === currentAdminDeviceId);
         const isOnline = isDeviceOnline(dev);
         const isBanned = !!dev.isBanned;
         const isHidden = hiddenSet.has(dev.deviceId);
         const isMuted = isDeviceMuted(dev);
 
-        const statusClass = isBanned ? 'offline' : (isOnline ? 'online' : 'offline');
-        const statusLabel = isBanned ? 'Banned' : (isOnline ? 'Online' : 'Offline');
+        const statusClass = isBanned ? 'offline' : (isInControl ? 'in-control' : (isOnline ? 'online' : 'offline'));
+        const statusLabel = isBanned ? 'Banned' : (isInControl ? 'In Control' : (isOnline ? 'Online' : 'Offline'));
 
         const locationStr = (dev.network?.city && dev.network?.city !== 'Unknown')
             ? `${dev.network.city}, ${dev.network.country || ''}`
             : (dev.network?.country || 'Unknown');
 
-        const hwStr = `${dev.hardware?.cpuCores || '?'} Cores, ${dev.hardware?.deviceMemoryGB || '?'}GB RAM`;
-        const resStr = `${dev.hardware?.screenWidth || '?'}x${dev.hardware?.screenHeight || '?'}`;
-
         rowsHtml += `
             <tr data-device-id="${dev.deviceId}">
                 <td>
-                    <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                    <div class="status-cell-container">
                         <span class="status-dot ${statusClass}" title="${statusLabel}"></span>
                         <span style="font-size: 0.8rem; color: var(--text-secondary);">${statusLabel}</span>
+                        ${isInControl ? '<span class="badge-in-control">In Control</span>' : ''}
                         ${isBanned ? '<span class="badge-banned">Banned</span>' : ''}
                         ${isMuted ? '<span class="badge-muted">Muted</span>' : ''}
                         ${isHidden ? '<span class="badge-hidden">Hidden</span>' : ''}
@@ -463,10 +557,6 @@ function renderDevicesTable() {
                 <td>
                     <div style="font-weight: 600;">${dev.operatingSystem?.name || 'OS'}</div>
                     <span class="sub-info">${dev.browser?.name || 'Browser'} ${dev.browser?.version || ''}</span>
-                </td>
-                <td>
-                    <div>${resStr}</div>
-                    <span class="sub-info">${hwStr}</span>
                 </td>
                 <td>
                     <div>${formatRelativeTime(dev.meta?.lastSeen)}</div>
@@ -591,9 +681,17 @@ function openDeviceModal(dev) {
     
     const isMuted = isDeviceMuted(dev);
     
+    const currentAdminDeviceId = localStorage.getItem('astrong_device_id');
+    const isInControl = currentUser && dev.deviceId && (dev.deviceId === currentAdminDeviceId);
+    
     const badge = document.getElementById('modal-status-badge');
-    badge.textContent = isOnline ? 'Online' : 'Offline';
-    badge.className = `modal-badge ${isOnline ? 'online' : ''}`;
+    if (isInControl) {
+        badge.textContent = 'In Control';
+        badge.className = 'modal-badge in-control';
+    } else {
+        badge.textContent = isOnline ? 'Online' : 'Offline';
+        badge.className = `modal-badge ${isOnline ? 'online' : ''}`;
+    }
 
     const mutedBadge = document.getElementById('modal-muted-badge');
     if (mutedBadge) mutedBadge.style.display = isMuted ? 'inline-block' : 'none';

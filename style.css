@@ -549,11 +549,57 @@ th,
     border-bottom: 1px solid var(--border-color);
 }
 
+.devices-table th.sortable-th {
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.devices-table th.sortable-th:hover {
+    color: var(--text-primary);
+    background-color: rgba(136, 89, 255, 0.08);
+}
+
+.devices-table th.sortable-th.active-sort {
+    color: var(--accent-purple);
+    font-weight: 700;
+}
+
+.sort-icon {
+    width: 14px;
+    height: 14px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 0.35rem;
+    opacity: 0.4;
+    transition: opacity 0.15s ease;
+}
+
+.sortable-th:hover .sort-icon,
+.sortable-th.active-sort .sort-icon {
+    opacity: 1;
+    color: var(--accent-purple);
+}
+
 .devices-table td {
     padding: 0.9rem 1rem;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-primary);
     vertical-align: middle;
+}
+
+.devices-table td:first-child,
+.devices-table th:first-child {
+    white-space: nowrap;
+}
+
+.status-cell-container {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+    flex-wrap: nowrap;
 }
 
 .devices-table tbody tr {
@@ -569,10 +615,15 @@ th,
     height: 8px;
     border-radius: 50%;
     display: inline-block;
+    flex-shrink: 0;
 }
 
 .status-dot.online {
     background-color: var(--online-green);
+}
+
+.status-dot.in-control {
+    background-color: var(--accent-purple, #8859ff);
 }
 
 .status-dot.offline {
@@ -688,6 +739,17 @@ th,
     letter-spacing: 0.03em;
 }
 
+.badge-in-control {
+    background-color: rgba(136, 89, 255, 0.18);
+    color: var(--accent-purple, #8859ff);
+    border: 1px solid rgba(136, 89, 255, 0.35);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+}
+
 .badge-muted {
     background-color: rgba(168, 85, 247, 0.15);
     color: #a855f7;
@@ -708,6 +770,12 @@ th,
     padding: 0.1rem 0.4rem;
     border-radius: 4px;
     letter-spacing: 0.03em;
+}
+
+.modal-badge.in-control {
+    background-color: rgba(136, 89, 255, 0.18);
+    color: var(--accent-purple, #8859ff);
+    border: 1px solid rgba(136, 89, 255, 0.35);
 }
 
 .modal-badge.banned {

@@ -143,19 +143,36 @@
                 <table class="devices-table">
                     <thead>
                         <tr>
-                            <th>Status</th>
-                            <th>Device & Type</th>
-                            <th>IP Address & Location</th>
-                            <th>OS & Browser</th>
-                            <th>Screen & Hardware</th>
-                            <th>Last Active</th>
-                            <th>Visits</th>
-                            <th>Actions</th>
+                            <th class="sortable-th" data-sort="status" title="Sort by Status">
+                                <span>Status</span>
+                                <i data-lucide="arrow-up-down" class="sort-icon"></i>
+                            </th>
+                            <th class="sortable-th" data-sort="device" title="Sort by Device Type & ID">
+                                <span>Device & Type</span>
+                                <i data-lucide="arrow-up-down" class="sort-icon"></i>
+                            </th>
+                            <th class="sortable-th" data-sort="location" title="Sort by IP & Location">
+                                <span>IP Address & Location</span>
+                                <i data-lucide="arrow-up-down" class="sort-icon"></i>
+                            </th>
+                            <th class="sortable-th" data-sort="os" title="Sort by OS & Browser">
+                                <span>OS & Browser</span>
+                                <i data-lucide="arrow-up-down" class="sort-icon"></i>
+                            </th>
+                            <th class="sortable-th active-sort desc" data-sort="lastSeen" title="Sort by Last Active Time">
+                                <span>Last Active</span>
+                                <i data-lucide="arrow-down" class="sort-icon"></i>
+                            </th>
+                            <th class="sortable-th" data-sort="visits" title="Sort by Total Visits">
+                                <span>Visits</span>
+                                <i data-lucide="arrow-up-down" class="sort-icon"></i>
+                            </th>
+                            <th class="actions-th">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="devices-tbody">
                         <tr>
-                            <td colspan="8" class="table-loading-cell">
+                            <td colspan="7" class="table-loading-cell">
                                 <div class="auth-loading-spinner"></div>
                                 <span>Loading device records from Cloud Firestore...</span>
                             </td>
