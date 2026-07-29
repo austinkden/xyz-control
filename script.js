@@ -524,7 +524,7 @@ function formatDate(isoStr) {
     if (!isoStr) return '--';
     const date = new Date(isoStr);
     if (isNaN(date.getTime())) return '--';
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 // 6. Device Detail Modal & Drawer Logic
