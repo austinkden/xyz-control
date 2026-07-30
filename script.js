@@ -29,6 +29,7 @@ const googleProvider = new GoogleAuthProvider();
 const authStateContainer = document.getElementById('auth-state-container');
 const loginSection = document.getElementById('login-section');
 const dashboardSection = document.getElementById('dashboard-section');
+const loadingSection = document.getElementById('loading-section');
 const googleLoginBtn = document.getElementById('google-login-btn');
 const loginErrorMsg = document.getElementById('login-error');
 
@@ -203,10 +204,11 @@ async function deleteDeviceRecord(deviceId) {
 onAuthStateChanged(auth, (user) => {
     currentUser = user;
     if (user) {
-        // Authenticated State
+        // Authenticated State - check permissions first
         renderUserNav(user);
         loginSection.style.display = 'none';
-        dashboardSection.style.display = 'block';
+        loadingSection.style.display = 'block';
+        dashboardSection.style.display = 'none';
         loginErrorMsg.style.display = 'none';
         
         if (window.lucide && typeof window.lucide.createIcons === 'function') {
@@ -222,6 +224,7 @@ onAuthStateChanged(auth, (user) => {
         renderSignedOutNav();
         loginSection.style.display = 'block';
         dashboardSection.style.display = 'none';
+        loadingSection.style.display = 'none';
         
         if (unsubscribeDevices) {
             unsubscribeDevices();
@@ -340,6 +343,10 @@ function initFirestoreListener() {
 
             updateMetrics(rawDevices);
             renderDevicesTable();
+
+            // Succeeded reading data! Now hide the loading screen and show the dashboard
+            loadingSection.style.display = 'none';
+            dashboardSection.style.display = 'block';
         }, (error) => {
             console.error('[Control] Firestore Snapshot Error:', error);
             devicesTbody.innerHTML = `
@@ -349,6 +356,14 @@ function initFirestoreListener() {
                     </td>
                 </tr>
             `;
+            loadingSection.style.display = 'none';
+
+            if (currentUser) {
+                // If the user doesn't have read permissions, we display error and sign out
+                loginErrorMsg.textContent = 'Access Denied: You do not have permission to view the control panel.';
+                loginErrorMsg.style.display = 'block';
+                signOut(auth);
+            }
         });
 
         // Auto-refresh metrics and table every 30s so relative times & online statuses stay up to date
@@ -489,6 +504,7 @@ function renderDevicesTable() {
 
     const now = Date.now();
     const hiddenSet = getHiddenDeviceIds();
+    const customNamesMap = getCustomNamesMap();
 
     const filtered = rawDevices.filter(dev => {
         const isHidden = hiddenSet.has(dev.deviceId);
@@ -498,7 +514,6 @@ function renderDevicesTable() {
         // Search Filter
         const ip = (dev.network?.ip || '').toLowerCase();
         const devId = (dev.deviceId || '').toLowerCase();
-        const customNamesMap = getCustomNamesMap();
         const customName = (dev.customName || customNamesMap[dev.deviceId] || '').toLowerCase();
         const os = (dev.operatingSystem?.name || '').toLowerCase();
         const browser = (dev.browser?.name || '').toLowerCase();

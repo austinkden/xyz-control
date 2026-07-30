@@ -61,6 +61,15 @@
             <div id="login-error" class="login-error-msg" style="display: none;"></div>
         </section>
 
+        <!-- Loading Screen (Displayed during auth check/permission verification) -->
+        <section id="loading-section" class="ctrl-card login-card" style="display: none;">
+            <div style="padding: 2rem 0;">
+                <div class="auth-loading-spinner" style="margin: 0 auto 1.25rem auto;"></div>
+                <div class="portal-title">Verifying Access</div>
+                <p class="login-desc">Checking your authorization rules...</p>
+            </div>
+        </section>
+
         <!-- Dashboard Section (Displayed when signed in) -->
         <section id="dashboard-section" style="display: none;">
             <!-- Metrics Summary Grid (3 Counters) -->
