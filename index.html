@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Panel | astrong.xyz</title>
     <meta name="description" content="Device telemetry and security control panel for astrong.xyz">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -13,13 +13,19 @@
     <!-- Top Navigation Bar -->
     <header class="ctrl-navbar">
         <div class="ctrl-nav-container">
-            <a href="https://astrong.xyz/" class="ctrl-logo" aria-label="Go to Home">
+            <div class="ctrl-logo">
                 <span class="logo-brand"><span class="logo-accent">astrong</span><span class="logo-sub">.xyz</span></span>
                 <span class="ctrl-badge">CONTROL</span>
-            </a>
+            </div>
             
             <div class="ctrl-nav-right">
-                <a href="https://astrong.xyz/" class="ctrl-nav-link">← Back to Site</a>
+                <a href="https://astrong.xyz/" class="ctrl-nav-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    <span>Back to Site</span>
+                </a>
                 <div id="auth-state-container" class="auth-state-container">
                     <div class="auth-loading-spinner" id="auth-spinner"></div>
                 </div>
@@ -212,6 +218,13 @@
                 <!-- Tab Content: Overview -->
                 <div id="tab-overview" class="tab-content active">
                     <div class="detail-grid">
+                        <div class="detail-item" style="grid-column: span 2;">
+                            <span class="detail-label">Custom Device Name</span>
+                            <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.3rem;">
+                                <input type="text" id="detail-custom-name-input" class="ctrl-search-input" placeholder="e.g. Austin's Laptop, Office PC..." style="flex: 1; padding: 0.4rem 0.75rem; font-size: 0.88rem;" />
+                                <button id="detail-save-name-btn" class="act-btn active" style="width: auto; padding: 0.4rem 0.85rem; font-size: 0.82rem; font-weight: 600; cursor: pointer;">Save Name</button>
+                            </div>
+                        </div>
                         <div class="detail-item">
                             <span class="detail-label">Device ID</span>
                             <span id="detail-device-id" class="detail-value mono-text">--</span>

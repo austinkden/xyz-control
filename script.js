@@ -81,6 +81,40 @@ function toggleHideDevice(deviceId) {
     renderDevicesTable();
 }
 
+// Helper: LocalStorage state for Custom Device Names
+function getCustomNamesMap() {
+    try {
+        return JSON.parse(localStorage.getItem('astrong_ctrl_custom_names') || '{}');
+    } catch (e) {
+        return {};
+    }
+}
+
+function saveCustomNameLocal(deviceId, name) {
+    const map = getCustomNamesMap();
+    if (name) {
+        map[deviceId] = name;
+    } else {
+        delete map[deviceId];
+    }
+    localStorage.setItem('astrong_ctrl_custom_names', JSON.stringify(map));
+}
+
+async function updateDeviceCustomName(deviceId, name) {
+    saveCustomNameLocal(deviceId, name);
+    const targetDev = rawDevices.find(d => d.deviceId === deviceId);
+    if (targetDev) {
+        targetDev.customName = name;
+    }
+    try {
+        const deviceRef = doc(db, "devices", deviceId);
+        await setDoc(deviceRef, { customName: name }, { merge: true });
+    } catch (err) {
+        console.warn('[Control] Firestore customName save error:', err);
+    }
+    renderDevicesTable();
+}
+
 // Helper: Check if device is online (seen within last 15 minutes)
 function isDeviceOnline(dev) {
     if (!dev || !dev.meta?.lastSeen) return false;
@@ -464,6 +498,8 @@ function renderDevicesTable() {
         // Search Filter
         const ip = (dev.network?.ip || '').toLowerCase();
         const devId = (dev.deviceId || '').toLowerCase();
+        const customNamesMap = getCustomNamesMap();
+        const customName = (dev.customName || customNamesMap[dev.deviceId] || '').toLowerCase();
         const os = (dev.operatingSystem?.name || '').toLowerCase();
         const browser = (dev.browser?.name || '').toLowerCase();
         const city = (dev.network?.city || '').toLowerCase();
@@ -472,6 +508,7 @@ function renderDevicesTable() {
         const matchesSearch = !searchTerm || 
             ip.includes(searchTerm) || 
             devId.includes(searchTerm) || 
+            customName.includes(searchTerm) ||
             os.includes(searchTerm) || 
             browser.includes(searchTerm) || 
             city.includes(searchTerm) || 
@@ -527,8 +564,10 @@ function renderDevicesTable() {
         const isHidden = hiddenSet.has(dev.deviceId);
         const isMuted = isDeviceMuted(dev);
 
-        const statusClass = isBanned ? 'offline' : (isInControl ? 'in-control' : (isOnline ? 'online' : 'offline'));
+        const statusDotClass = isBanned ? 'banned' : (isOnline || isInControl ? 'online' : 'offline');
         const statusLabel = isBanned ? 'Banned' : (isInControl ? 'In Control' : (isOnline ? 'Online' : 'Offline'));
+
+        const deviceName = dev.customName || customNamesMap[dev.deviceId] || dev.deviceType || 'Desktop';
 
         const locationStr = (dev.network?.city && dev.network?.city !== 'Unknown')
             ? `${dev.network.city}, ${dev.network.country || ''}`
@@ -538,8 +577,8 @@ function renderDevicesTable() {
             <tr data-device-id="${dev.deviceId}">
                 <td>
                     <div class="status-cell-container">
-                        <span class="status-dot ${statusClass}" title="${statusLabel}"></span>
-                        <span style="font-size: 0.8rem; color: var(--text-secondary);">${statusLabel}</span>
+                        <span class="status-dot ${statusDotClass}" title="${statusLabel}"></span>
+                        <span class="device-custom-name-text" style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary);">${deviceName}</span>
                         ${isInControl ? '<span class="badge-in-control">In Control</span>' : ''}
                         ${isBanned ? '<span class="badge-banned">Banned</span>' : ''}
                         ${isMuted ? '<span class="badge-muted">Muted</span>' : ''}
@@ -567,6 +606,9 @@ function renderDevicesTable() {
                 </td>
                 <td>
                     <div class="action-buttons-group">
+                        <button class="act-btn rename-btn" data-device-id="${dev.deviceId}" title="Rename Device (Custom Name)">
+                            <i data-lucide="pencil"></i>
+                        </button>
                         <button class="act-btn ban-btn ${isBanned ? 'active' : ''}" data-device-id="${dev.deviceId}" data-banned="${isBanned}" title="${isBanned ? 'Unban Device' : 'Ban Device'}">
                             <i data-lucide="hammer"></i>
                         </button>
@@ -594,6 +636,21 @@ function renderDevicesTable() {
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
         window.lucide.createIcons();
     }
+
+    // Attach Event Handlers for Action Buttons
+    devicesTbody.querySelectorAll('.rename-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const devId = btn.getAttribute('data-device-id');
+            const targetDev = rawDevices.find(d => d.deviceId === devId);
+            const currentMap = getCustomNamesMap();
+            const currentName = targetDev?.customName || currentMap[devId] || '';
+            const newName = prompt(`Enter custom name for device ${devId}:`, currentName);
+            if (newName !== null) {
+                await updateDeviceCustomName(devId, newName.trim());
+            }
+        });
+    });
 
     // Attach Event Handlers for Action Buttons
     devicesTbody.querySelectorAll('.ban-btn').forEach(btn => {
@@ -673,7 +730,31 @@ function formatDate(isoStr) {
 function openDeviceModal(dev) {
     activeSelectedDevice = dev;
     
-    document.getElementById('modal-device-id').textContent = dev.deviceId || 'Device Details';
+    const customNamesMap = getCustomNamesMap();
+    const currentCustomName = dev.customName || customNamesMap[dev.deviceId] || '';
+    document.getElementById('modal-device-id').textContent = currentCustomName || dev.deviceId || 'Device Details';
+
+    const customNameInput = document.getElementById('detail-custom-name-input');
+    if (customNameInput) {
+        customNameInput.value = currentCustomName;
+        customNameInput.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const saveBtn = document.getElementById('detail-save-name-btn');
+                if (saveBtn) saveBtn.click();
+            }
+        };
+    }
+
+    const saveNameBtn = document.getElementById('detail-save-name-btn');
+    if (saveNameBtn) {
+        saveNameBtn.onclick = async () => {
+            if (!activeSelectedDevice) return;
+            const newName = document.getElementById('detail-custom-name-input').value.trim();
+            await updateDeviceCustomName(activeSelectedDevice.deviceId, newName);
+            document.getElementById('modal-device-id').textContent = newName || activeSelectedDevice.deviceId;
+        };
+    }
     
     const isOnline = isDeviceOnline(dev);
     const hiddenSet = getHiddenDeviceIds();
