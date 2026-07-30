@@ -116,6 +116,21 @@ async function updateDeviceCustomName(deviceId, name) {
     renderDevicesTable();
 }
 
+// Helper: Formats the device object so that recentViews is placed at the bottom of the JSON keys
+function formatDeviceForJson(dev) {
+    if (!dev) return dev;
+    const ordered = {};
+    Object.keys(dev).forEach(key => {
+        if (key !== 'recentViews') {
+            ordered[key] = dev[key];
+        }
+    });
+    if ('recentViews' in dev) {
+        ordered['recentViews'] = dev['recentViews'];
+    }
+    return ordered;
+}
+
 // Helper: Check if device is online (seen within last 15 minutes)
 function isDeviceOnline(dev) {
     if (!dev || !dev.meta?.lastSeen) return false;
@@ -858,7 +873,7 @@ function openDeviceModal(dev) {
     }
 
     // JSON Raw Viewer Tab
-    document.getElementById('json-viewer').textContent = JSON.stringify(dev, null, 2);
+    document.getElementById('json-viewer').textContent = JSON.stringify(formatDeviceForJson(dev), null, 2);
 
     // Open Modal
     deviceModal.classList.add('active');
@@ -895,7 +910,8 @@ refreshBtn.addEventListener('click', () => {
 
 exportBtn.addEventListener('click', () => {
     if (rawDevices.length === 0) return;
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(rawDevices, null, 2));
+    const formattedDevices = rawDevices.map(d => formatDeviceForJson(d));
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(formattedDevices, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
     downloadAnchor.setAttribute("download", `astrong-telemetry-${new Date().toISOString().slice(0,10)}.json`);
