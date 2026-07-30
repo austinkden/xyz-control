@@ -741,6 +741,25 @@ th,
     background-color: var(--error-red, #ef4444);
 }
 
+@keyframes status-dot-flash {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    35% {
+        transform: scale(1.85);
+        opacity: 0.35;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.status-dot.flash {
+    animation: status-dot-flash 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
 .mono-text {
     font-family: var(--font-mono);
     font-size: 0.82rem;

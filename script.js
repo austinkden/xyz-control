@@ -57,6 +57,7 @@ let selectedTypeFilter = 'all';
 let selectedStatusFilter = 'default';
 let currentSortKey = 'lastSeen';
 let currentSortOrder = 'desc';
+let flashingDeviceIds = new Set();
 
 // Helper: LocalStorage state for Hidden Devices
 function getHiddenDeviceIds() {
@@ -341,8 +342,32 @@ function initFirestoreListener() {
 
     try {
         const devicesRef = collection(db, "devices");
+        let isInitialSnapshot = true;
+
         // Subscribe to live snapshot
         unsubscribeDevices = onSnapshot(devicesRef, (snapshot) => {
+            if (!isInitialSnapshot) {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === 'modified' || change.type === 'added') {
+                        const devData = change.doc.data();
+                        const devId = devData.deviceId || change.doc.id;
+                        if (devId) {
+                            flashingDeviceIds.add(devId);
+                            setTimeout(() => {
+                                flashingDeviceIds.delete(devId);
+                                const row = devicesTbody.querySelector(`tr[data-device-id="${devId}"]`);
+                                if (row) {
+                                    const dot = row.querySelector('.status-dot');
+                                    if (dot) dot.classList.remove('flash');
+                                }
+                            }, 800);
+                        }
+                    }
+                });
+            } else {
+                isInitialSnapshot = false;
+            }
+
             rawDevices = [];
             snapshot.forEach((docSnap) => {
                 const data = docSnap.data();
@@ -596,6 +621,7 @@ function renderDevicesTable() {
 
         const statusDotClass = isBanned ? 'banned' : (isOnline || isInControl ? 'online' : 'offline');
         const statusLabel = isBanned ? 'Banned' : (isInControl ? 'In Control' : (isOnline ? 'Online' : 'Offline'));
+        const isFlashing = flashingDeviceIds.has(dev.deviceId);
 
         const deviceName = dev.customName || customNamesMap[dev.deviceId] || dev.deviceType || 'Desktop';
 
@@ -607,7 +633,7 @@ function renderDevicesTable() {
             <tr data-device-id="${dev.deviceId}">
                 <td>
                     <div class="status-cell-container">
-                        <span class="status-dot ${statusDotClass}" title="${statusLabel}"></span>
+                        <span class="status-dot ${statusDotClass} ${isFlashing ? 'flash' : ''}" title="${statusLabel}"></span>
                         <span class="device-custom-name-text" style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary);">${deviceName}</span>
                         ${isInControl ? '<span class="badge-in-control">In Control</span>' : ''}
                         ${isBanned ? '<span class="badge-banned">Banned</span>' : ''}
