@@ -1399,3 +1399,184 @@ th,
         gap: 0.35rem;
     }
 }
+
+/* Dashboard Main Tab Bar */
+.ctrl-tab-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.ctrl-main-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.ctrl-main-tab:hover {
+    color: var(--text-primary);
+    background-color: var(--surface-color);
+}
+
+.ctrl-main-tab.active {
+    color: var(--accent-purple);
+    background-color: var(--accent-purple-bg);
+    border-color: rgba(136, 89, 255, 0.3);
+}
+
+.ctrl-main-tab i {
+    width: 18px;
+    height: 18px;
+}
+
+/* Create Token Bar & Form */
+.create-token-form {
+    display: flex;
+    gap: 0.75rem;
+    width: 100%;
+    align-items: center;
+}
+
+.create-token-form .search-box.label-box {
+    flex: 1;
+}
+
+.create-token-form .search-box.label-box input {
+    width: 100%;
+}
+
+.ctrl-btn.primary-btn {
+    background-color: var(--accent-purple);
+    color: #ffffff;
+    border: 1px solid transparent;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.ctrl-btn.primary-btn:hover {
+    background-color: #7746f0;
+}
+
+.ctrl-btn.primary-btn:active {
+    opacity: 0.85;
+}
+
+/* Tokens Table Cell Styles */
+.tokens-table .token-code {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--accent-purple);
+    background-color: rgba(136, 89, 255, 0.1);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.tokens-table .token-link-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tokens-table .token-url-text {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+.copy-btn {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.copy-btn:hover {
+    border-color: var(--accent-purple);
+    color: var(--text-primary);
+}
+
+.copy-btn.copied {
+    background-color: var(--online-green-bg);
+    border-color: var(--online-green);
+    color: var(--online-green);
+}
+
+.toggle-status-btn {
+    padding: 0.3rem 0.65rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.toggle-status-btn.active {
+    background-color: var(--online-green-bg);
+    color: var(--online-green);
+    border-color: rgba(52, 211, 153, 0.3);
+}
+
+.toggle-status-btn.inactive {
+    background-color: rgba(248, 113, 113, 0.12);
+    color: var(--error-red);
+    border-color: rgba(248, 113, 113, 0.3);
+}
+
+.delete-token-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    padding: 0.35rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.delete-token-btn:hover {
+    color: var(--error-red);
+    background-color: rgba(248, 113, 113, 0.12);
+}

@@ -217,6 +217,9 @@ async function deleteDeviceRecord(deviceId) {
 }
 
 // 1. Firebase Authentication Observers & Handlers
+let rawTokens = [];
+let unsubscribeTokens = null;
+
 onAuthStateChanged(auth, (user) => {
     currentUser = user;
     if (user) {
@@ -235,6 +238,7 @@ onAuthStateChanged(auth, (user) => {
         initTableSorting();
         updateSortHeaderUI();
         initFirestoreListener();
+        initTokensFirestoreListener();
     } else {
         // Unauthenticated State
         renderSignedOutNav();
@@ -245,6 +249,10 @@ onAuthStateChanged(auth, (user) => {
         if (unsubscribeDevices) {
             unsubscribeDevices();
             unsubscribeDevices = null;
+        }
+        if (unsubscribeTokens) {
+            unsubscribeTokens();
+            unsubscribeTokens = null;
         }
     }
 });
@@ -945,4 +953,265 @@ exportBtn.addEventListener('click', () => {
     downloadAnchor.click();
     downloadAnchor.remove();
 });
+
+// =========================================================================
+// 8. SCHOOL AUTH TOKENS MANAGEMENT
+// =========================================================================
+
+// Main Dashboard View Tab Switcher
+const tabBtnTelemetry = document.getElementById('tab-btn-telemetry');
+const tabBtnTokens = document.getElementById('tab-btn-tokens');
+const telemetryTabContent = document.getElementById('telemetry-tab-content');
+const tokensTabContent = document.getElementById('tokens-tab-content');
+
+if (tabBtnTelemetry && tabBtnTokens && telemetryTabContent && tokensTabContent) {
+    tabBtnTelemetry.addEventListener('click', () => {
+        tabBtnTelemetry.classList.add('active');
+        tabBtnTokens.classList.remove('active');
+        telemetryTabContent.style.display = 'block';
+        tokensTabContent.style.display = 'none';
+    });
+
+    tabBtnTokens.addEventListener('click', () => {
+        tabBtnTokens.classList.add('active');
+        tabBtnTelemetry.classList.remove('active');
+        tokensTabContent.style.display = 'block';
+        telemetryTabContent.style.display = 'none';
+    });
+}
+
+// Generate random 12-character alphanumeric token string
+function generate12CharToken() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let res = '';
+    const array = new Uint8Array(12);
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        crypto.getRandomValues(array);
+        for (let i = 0; i < 12; i++) {
+            res += chars.charAt(array[i] % chars.length);
+        }
+    } else {
+        for (let i = 0; i < 12; i++) {
+            res += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+    }
+    return res;
+}
+
+// Escape HTML utility to prevent XSS
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// Update token summary metrics
+function updateTokensMetrics(tokens) {
+    const totalEl = document.getElementById('metric-total-tokens');
+    const activeEl = document.getElementById('metric-active-tokens');
+    
+    if (totalEl) totalEl.textContent = tokens.length;
+    if (activeEl) {
+        const activeCount = tokens.filter(t => t.active).length;
+        activeEl.textContent = activeCount;
+    }
+}
+
+// Real-time Firestore observer for school_auth_tokens collection
+function initTokensFirestoreListener() {
+    const tokensTbody = document.getElementById('tokens-tbody');
+    if (!tokensTbody) return;
+
+    try {
+        const tokensRef = collection(db, "school_auth_tokens");
+        unsubscribeTokens = onSnapshot(tokensRef, (snapshot) => {
+            rawTokens = [];
+            snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                rawTokens.push({
+                    id: docSnap.id,
+                    token: data.token || docSnap.id,
+                    label: data.label || 'Unlabeled Token',
+                    active: data.active !== false,
+                    createdAt: data.createdAt || null
+                });
+            });
+
+            // Sort by created timestamp descending
+            rawTokens.sort((a, b) => {
+                const timeA = new Date(a.createdAt || 0).getTime();
+                const timeB = new Date(b.createdAt || 0).getTime();
+                return timeB - timeA;
+            });
+
+            updateTokensMetrics(rawTokens);
+            renderTokensTable(rawTokens);
+        }, (error) => {
+            console.error('[Control] Tokens Snapshot Error:', error);
+            tokensTbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="table-loading-cell" style="color: var(--error-red);">
+                        Error loading School Auth Tokens from Cloud Firestore.
+                    </td>
+                </tr>
+            `;
+        });
+    } catch (e) {
+        console.error('[Control] initTokensFirestoreListener error:', e);
+    }
+}
+
+// Render School Auth Tokens table
+function renderTokensTable(tokens) {
+    const tokensTbody = document.getElementById('tokens-tbody');
+    if (!tokensTbody) return;
+
+    if (tokens.length === 0) {
+        tokensTbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="table-loading-cell">
+                    <span>No school auth tokens created yet. Enter a label above and click "Generate Token" to create one.</span>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tokensTbody.innerHTML = '';
+    tokens.forEach(tok => {
+        const tr = document.createElement('tr');
+        const shareUrl = `https://schedule.astrong.xyz/school?auth=school+${tok.token}`;
+        
+        let createdFormatted = 'Unknown';
+        if (tok.createdAt) {
+            try {
+                createdFormatted = new Date(tok.createdAt).toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+            } catch (e) {}
+        }
+
+        tr.innerHTML = `
+            <td>
+                <strong>${escapeHtml(tok.label)}</strong>
+            </td>
+            <td>
+                <span class="token-code">${escapeHtml(tok.token)}</span>
+            </td>
+            <td>
+                <div class="token-link-cell">
+                    <span class="token-url-text" title="${escapeHtml(shareUrl)}">schedule.astrong.xyz/school?auth=school+${escapeHtml(tok.token)}</span>
+                    <button type="button" class="copy-btn" data-url="${escapeHtml(shareUrl)}" title="Copy Pre-Verification Link">
+                        <i data-lucide="copy"></i>
+                        <span>Copy</span>
+                    </button>
+                </div>
+            </td>
+            <td>
+                <button type="button" class="toggle-status-btn ${tok.active ? 'active' : 'inactive'}" data-id="${escapeHtml(tok.id)}" data-active="${tok.active}">
+                    ${tok.active ? 'Active' : 'Deactivated'}
+                </button>
+            </td>
+            <td>${createdFormatted}</td>
+            <td class="actions-td">
+                <button type="button" class="delete-token-btn" data-id="${escapeHtml(tok.id)}" title="Delete Token">
+                    <i data-lucide="trash-2"></i>
+                </button>
+            </td>
+        `;
+
+        tokensTbody.appendChild(tr);
+    });
+
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+    }
+
+    // Copy Button Handler
+    tokensTbody.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const url = e.currentTarget.getAttribute('data-url');
+            if (url && navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                    btn.classList.add('copied');
+                    const span = btn.querySelector('span');
+                    if (span) span.textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.classList.remove('copied');
+                        if (span) span.textContent = 'Copy';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('[Control] Clipboard copy failed:', err);
+                });
+            }
+        });
+    });
+
+    // Toggle Active Status Handler
+    tokensTbody.querySelectorAll('.toggle-status-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            const currentActive = e.currentTarget.getAttribute('data-active') === 'true';
+            try {
+                const docRef = doc(db, "school_auth_tokens", id);
+                await setDoc(docRef, { active: !currentActive }, { merge: true });
+            } catch (err) {
+                console.error('[Control] Error toggling token status:', err);
+                alert('Failed to update token status: ' + err.message);
+            }
+        });
+    });
+
+    // Delete Token Handler
+    tokensTbody.querySelectorAll('.delete-token-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            if (confirm('Are you sure you want to delete this auth token?')) {
+                try {
+                    const docRef = doc(db, "school_auth_tokens", id);
+                    await deleteDoc(docRef);
+                } catch (err) {
+                    console.error('[Control] Error deleting token:', err);
+                    alert('Failed to delete token: ' + err.message);
+                }
+            }
+        });
+    });
+}
+
+// Create New Token Form Handler
+const createTokenForm = document.getElementById('create-token-form');
+if (createTokenForm) {
+    createTokenForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('token-label-input');
+        const label = input ? input.value.trim() : '';
+        if (!label) return;
+
+        const token = generate12CharToken();
+        const submitBtn = document.getElementById('create-token-btn');
+        try {
+            if (submitBtn) submitBtn.disabled = true;
+            const docRef = doc(db, "school_auth_tokens", token);
+            await setDoc(docRef, {
+                token: token,
+                label: label,
+                active: true,
+                createdAt: new Date().toISOString()
+            });
+            if (input) input.value = '';
+        } catch (err) {
+            console.error('[Control] Error creating auth token:', err);
+            alert('Failed to create auth token: ' + err.message);
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    });
+}
 
