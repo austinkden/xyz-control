@@ -985,6 +985,58 @@ function openDeviceModal(dev) {
         historyContainer.innerHTML = historyHtml;
     }
 
+    // Authentication Access Tab
+    const authContainer = document.getElementById('auth-container');
+    if (authContainer) {
+        const usages = dev.tokenUsages || [];
+        const hasValidSchoolToken = usages.some(u => u.tokenType === 'school' && (u.valid === true || u.status === 'valid' || (!u.status && u.valid !== false)));
+        const isSchoolVerified = !!(dev.authorizations?.schoolSchedule || dev.schoolVerified || hasValidSchoolToken);
+
+        const schoolStatusBadge = isSchoolVerified
+            ? `<span style="font-size: 0.72rem; font-family: var(--font-mono); font-weight: 700; padding: 0.2rem 0.55rem; background: rgba(52, 199, 89, 0.15); color: #34c759; border-radius: 4px; border: 1px solid rgba(52, 199, 89, 0.3);">ACCESS GRANTED</span>`
+            : `<span style="font-size: 0.72rem; font-family: var(--font-mono); font-weight: 700; padding: 0.2rem 0.55rem; background: rgba(142, 142, 147, 0.15); color: var(--text-muted); border-radius: 4px; border: 1px solid rgba(142, 142, 147, 0.3);">NO ACCESS</span>`;
+
+        let grantedViaText = 'None';
+        if (isSchoolVerified) {
+            const validToken = usages.slice().reverse().find(u => u.tokenType === 'school' && (u.valid === true || u.status === 'valid' || (!u.status && u.valid !== false)));
+            if (validToken) {
+                grantedViaText = `Token Redeemed (${escapeHtml(validToken.token)}) - "${escapeHtml(validToken.label || 'Unlabeled')}"`;
+            } else {
+                grantedViaText = 'School Password Verification';
+            }
+        }
+
+        authContainer.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div class="detail-item full-width" style="border-left: 3px solid ${isSchoolVerified ? '#34c759' : 'var(--border-color)'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <strong style="color: var(--text-primary); font-size: 0.95rem;">School Schedule Access</strong>
+                            <span class="mono-text" style="font-size: 0.75rem; color: var(--text-muted);">/schedule/school</span>
+                        </div>
+                        ${schoolStatusBadge}
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 0.5rem; font-size: 0.82rem;">
+                        <div>
+                            <span class="detail-label">Verification Method</span>
+                            <div style="color: var(--text-primary); font-weight: 500; margin-top: 0.15rem;">${grantedViaText}</div>
+                        </div>
+                        <div>
+                            <span class="detail-label">Permission Scope</span>
+                            <div style="color: var(--text-primary); font-weight: 500; margin-top: 0.15rem;">Full Schedule View</div>
+                        </div>
+                        <div>
+                            <span class="detail-label">Status</span>
+                            <div style="color: ${isSchoolVerified ? '#34c759' : 'var(--text-muted)'}; font-weight: 600; margin-top: 0.15rem;">
+                                ${isSchoolVerified ? 'Authorized Visitor' : 'Unverified Visitor (Blocked)'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     // Token Usage Tab
     const tokenUsageContainer = document.getElementById('token-usage-container');
     if (tokenUsageContainer) {
@@ -995,13 +1047,32 @@ function openDeviceModal(dev) {
             let usageHtml = '';
             usages.slice().reverse().forEach(u => {
                 const typeBadge = u.tokenType ? u.tokenType.toUpperCase() : 'TOKEN';
+                
+                const isInvalid = u.valid === false || u.status === 'invalid' || u.status === 'error';
+                const isInactive = u.status === 'inactive';
+                const isValid = !isInvalid && !isInactive;
+
+                let statusBadge = '';
+                let borderStyle = '';
+
+                if (isValid) {
+                    statusBadge = `<span style="font-size: 0.7rem; font-family: var(--font-mono); font-weight: 600; padding: 0.15rem 0.45rem; background: rgba(52, 199, 89, 0.15); color: #34c759; border-radius: 4px; border: 1px solid rgba(52, 199, 89, 0.3);">VALID</span>`;
+                } else if (isInactive) {
+                    statusBadge = `<span style="font-size: 0.7rem; font-family: var(--font-mono); font-weight: 600; padding: 0.15rem 0.45rem; background: rgba(255, 159, 10, 0.15); color: #ff9f0a; border-radius: 4px; border: 1px solid rgba(255, 159, 10, 0.3);">INACTIVE</span>`;
+                    borderStyle = 'border-left: 3px solid #ff9f0a;';
+                } else {
+                    statusBadge = `<span style="font-size: 0.7rem; font-family: var(--font-mono); font-weight: 600; padding: 0.15rem 0.45rem; background: rgba(255, 69, 58, 0.15); color: #ff453a; border-radius: 4px; border: 1px solid rgba(255, 69, 58, 0.3);">INVALID / ABUSE ATTEMPT</span>`;
+                    borderStyle = 'border-left: 3px solid #ff453a;';
+                }
+
                 usageHtml += `
-                    <div class="history-item">
+                    <div class="history-item" style="${borderStyle}">
                         <div>
                             <div class="history-url" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                                 <span class="token-code">${escapeHtml(u.token)}</span>
                                 <strong style="color: var(--text-primary); font-size: 0.85rem;">${escapeHtml(u.label || 'Unlabeled Token')}</strong>
                                 <span style="font-size: 0.7rem; font-family: var(--font-mono); padding: 0.15rem 0.45rem; background: var(--accent-purple-bg); color: var(--accent-purple); border-radius: 4px;">${escapeHtml(typeBadge)}</span>
+                                ${statusBadge}
                             </div>
                             <span class="sub-info mono-text">${escapeHtml(u.page || '/')}</span>
                         </div>
