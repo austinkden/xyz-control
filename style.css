@@ -1484,41 +1484,22 @@ th,
 
 /* Tokens Table Cell & Column Layout Styles */
 .tokens-table {
-    table-layout: fixed;
     width: 100%;
-    max-width: 100%;
+    min-width: 950px;
+    border-collapse: collapse;
 }
 
 .tokens-table th,
 .tokens-table td {
-    padding: 0.85rem 0.5rem;
-    box-sizing: border-box;
-}
-
-.tokens-table th:first-child,
-.tokens-table td:first-child {
-    padding-left: 1rem;
-}
-
-.tokens-table th:last-child,
-.tokens-table td:last-child {
-    padding-right: 1rem;
-    text-align: right;
-}
-
-.tokens-table th:nth-child(1) { width: 17%; } /* Label */
-.tokens-table th:nth-child(2) { width: 14%; } /* Token */
-.tokens-table th:nth-child(3) { width: 25%; } /* Link */
-.tokens-table th:nth-child(4) { width: 9%; }  /* Status */
-.tokens-table th:nth-child(5) { width: 10%; } /* One-Time */
-.tokens-table th:nth-child(6) { width: 7%; }  /* Uses */
-.tokens-table th:nth-child(7) { width: 12%; } /* Created */
-.tokens-table th:nth-child(8) { width: 6%; }  /* Actions */
-
-.tokens-table td {
-    overflow: hidden;
-    text-overflow: ellipsis;
+    padding: 0.85rem 1rem;
     white-space: nowrap;
+    vertical-align: middle;
+}
+
+.tokens-table th.actions-th,
+.tokens-table td.actions-td {
+    text-align: right;
+    width: 60px;
 }
 
 .create-onetime-toggle-group {
