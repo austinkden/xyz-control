@@ -258,6 +258,10 @@
                             <i data-lucide="tag"></i>
                             <input type="text" id="token-label-input" placeholder="Token label (e.g., Mom, Counselor, John...)" required autocomplete="off">
                         </div>
+                        <label class="one-time-checkbox-label" title="Automatically deactivate token after first use">
+                            <input type="checkbox" id="token-onetime-input">
+                            <span>One-time use</span>
+                        </label>
                         <button type="submit" id="create-token-btn" class="ctrl-btn primary-btn">
                             <i data-lucide="plus"></i>
                             <span>Generate Token</span>
@@ -274,13 +278,15 @@
                                 <th>Token</th>
                                 <th>Pre-Verification Link</th>
                                 <th>Status</th>
+                                <th>One-Time</th>
+                                <th>Uses</th>
                                 <th>Created</th>
                                 <th class="actions-th">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="tokens-tbody">
                             <tr>
-                                <td colspan="6" class="table-loading-cell">
+                                <td colspan="8" class="table-loading-cell">
                                     <div class="auth-loading-spinner"></div>
                                     <span>Loading auth tokens from Cloud Firestore...</span>
                                 </td>

@@ -1540,28 +1540,100 @@ th,
     color: var(--online-green);
 }
 
-.toggle-status-btn {
-    padding: 0.3rem 0.65rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
+/* Toggle Switch Component */
+.ctrl-switch {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+    height: 22px;
+    vertical-align: middle;
+}
+
+.ctrl-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.ctrl-switch-slider {
+    position: absolute;
     cursor: pointer;
-    border: 1px solid transparent;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--surface-variant);
+    border: 1px solid var(--border-color);
     transition: all 0.2s ease;
+    border-radius: 22px;
+}
+
+.ctrl-switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--text-muted);
+    transition: all 0.2s ease;
+    border-radius: 50%;
+}
+
+.ctrl-switch input:checked + .ctrl-switch-slider {
+    background-color: var(--online-green-bg);
+    border-color: rgba(52, 211, 153, 0.4);
+}
+
+.ctrl-switch input:checked + .ctrl-switch-slider:before {
+    transform: translateX(16px);
+    background-color: var(--online-green);
+}
+
+.ctrl-switch:hover .ctrl-switch-slider {
+    border-color: var(--border-hover);
+}
+
+/* Uses Badge Styling */
+.uses-badge {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    padding: 0.2rem 0.55rem;
+    border-radius: 12px;
+    display: inline-block;
+}
+
+.one-time-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
+    white-space: nowrap;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
 }
 
-.toggle-status-btn.active {
-    background-color: var(--online-green-bg);
-    color: var(--online-green);
-    border-color: rgba(52, 211, 153, 0.3);
+.one-time-checkbox-label:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
 }
 
-.toggle-status-btn.inactive {
-    background-color: rgba(248, 113, 113, 0.12);
-    color: var(--error-red);
-    border-color: rgba(248, 113, 113, 0.3);
+.one-time-checkbox-label input[type="checkbox"] {
+    accent-color: var(--accent-purple);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
 }
 
 .delete-token-btn {

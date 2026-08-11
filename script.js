@@ -1037,6 +1037,8 @@ function initTokensFirestoreListener() {
                     token: data.token || docSnap.id,
                     label: data.label || 'Unlabeled Token',
                     active: data.active !== false,
+                    oneTimeUse: data.oneTimeUse === true,
+                    usesCount: data.usesCount || 0,
                     createdAt: data.createdAt || null
                 });
             });
@@ -1052,13 +1054,43 @@ function initTokensFirestoreListener() {
             renderTokensTable(rawTokens);
         }, (error) => {
             console.error('[Control] Tokens Snapshot Error:', error);
-            tokensTbody.innerHTML = `
-                <tr>
-                    <td colspan="6" class="table-loading-cell" style="color: var(--error-red);">
-                        Error loading School Auth Tokens from Cloud Firestore.
-                    </td>
-                </tr>
-            `;
+            const isPermissionError = error.code === 'permission-denied' || (error.message && error.message.includes('permissions'));
+            if (isPermissionError) {
+                tokensTbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="padding: 1.5rem; text-align: left;">
+                            <div style="background-color: rgba(248, 113, 113, 0.08); border: 1px solid rgba(248, 113, 113, 0.3); border-radius: 8px; padding: 1.25rem; color: var(--text-primary);">
+                                <div style="font-weight: 600; color: var(--error-red); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i data-lucide="shield-alert"></i>
+                                    <span>Firestore Security Rules Required</span>
+                                </div>
+                                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                                    Firebase Cloud Firestore requires security rules for the new <code>school_auth_tokens</code> collection. Please add the following snippet to your Rules in the <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong> tab:
+                                </p>
+                                <pre style="background: #121016; border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-purple); overflow-x: auto; margin-bottom: 0.75rem; user-select: text; -webkit-user-select: text;">
+match /school_auth_tokens/{tokenId} {
+  allow get: if true;
+  allow list, create, update, delete: if request.auth != null && request.auth.token.email == 'dolphin.kden@gmail.com';
+}</pre>
+                                <p style="font-size: 0.8rem; color: var(--text-muted);">
+                                    Once rules are published in Firebase Console, refresh this page to manage your tokens.
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
+            } else {
+                tokensTbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="table-loading-cell" style="color: var(--error-red);">
+                            Error loading School Auth Tokens from Cloud Firestore: ${escapeHtml(error.message)}
+                        </td>
+                    </tr>
+                `;
+            }
         });
     } catch (e) {
         console.error('[Control] initTokensFirestoreListener error:', e);
@@ -1073,7 +1105,7 @@ function renderTokensTable(tokens) {
     if (tokens.length === 0) {
         tokensTbody.innerHTML = `
             <tr>
-                <td colspan="6" class="table-loading-cell">
+                <td colspan="8" class="table-loading-cell">
                     <span>No school auth tokens created yet. Enter a label above and click "Generate Token" to create one.</span>
                 </td>
             </tr>
@@ -1114,9 +1146,19 @@ function renderTokensTable(tokens) {
                 </div>
             </td>
             <td>
-                <button type="button" class="toggle-status-btn ${tok.active ? 'active' : 'inactive'}" data-id="${escapeHtml(tok.id)}" data-active="${tok.active}">
-                    ${tok.active ? 'Active' : 'Deactivated'}
-                </button>
+                <label class="ctrl-switch" title="${tok.active ? 'Active (click to deactivate)' : 'Deactivated (click to activate)'}">
+                    <input type="checkbox" class="toggle-status-checkbox" data-id="${escapeHtml(tok.id)}" ${tok.active ? 'checked' : ''}>
+                    <span class="ctrl-switch-slider"></span>
+                </label>
+            </td>
+            <td>
+                <label class="ctrl-switch" title="${tok.oneTimeUse ? 'One-time use enabled (auto-deactivates after 1 use)' : 'Multi-use enabled (click to enable one-time use)'}">
+                    <input type="checkbox" class="toggle-onetime-checkbox" data-id="${escapeHtml(tok.id)}" ${tok.oneTimeUse ? 'checked' : ''}>
+                    <span class="ctrl-switch-slider"></span>
+                </label>
+            </td>
+            <td>
+                <span class="uses-badge">${tok.usesCount || 0}</span>
             </td>
             <td>${createdFormatted}</td>
             <td class="actions-td">
@@ -1153,17 +1195,34 @@ function renderTokensTable(tokens) {
         });
     });
 
-    // Toggle Active Status Handler
-    tokensTbody.querySelectorAll('.toggle-status-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
+    // Toggle Active Status Handler (Switch Checkbox)
+    tokensTbody.querySelectorAll('.toggle-status-checkbox').forEach(input => {
+        input.addEventListener('change', async (e) => {
             const id = e.currentTarget.getAttribute('data-id');
-            const currentActive = e.currentTarget.getAttribute('data-active') === 'true';
+            const newActive = e.currentTarget.checked;
             try {
                 const docRef = doc(db, "school_auth_tokens", id);
-                await setDoc(docRef, { active: !currentActive }, { merge: true });
+                await setDoc(docRef, { active: newActive }, { merge: true });
             } catch (err) {
                 console.error('[Control] Error toggling token status:', err);
                 alert('Failed to update token status: ' + err.message);
+                e.currentTarget.checked = !newActive;
+            }
+        });
+    });
+
+    // Toggle One-Time Use Handler (Switch Checkbox)
+    tokensTbody.querySelectorAll('.toggle-onetime-checkbox').forEach(input => {
+        input.addEventListener('change', async (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            const newOneTime = e.currentTarget.checked;
+            try {
+                const docRef = doc(db, "school_auth_tokens", id);
+                await setDoc(docRef, { oneTimeUse: newOneTime }, { merge: true });
+            } catch (err) {
+                console.error('[Control] Error toggling one-time use:', err);
+                alert('Failed to update one-time use setting: ' + err.message);
+                e.currentTarget.checked = !newOneTime;
             }
         });
     });
@@ -1194,6 +1253,9 @@ if (createTokenForm) {
         const label = input ? input.value.trim() : '';
         if (!label) return;
 
+        const onetimeInput = document.getElementById('token-onetime-input');
+        const isOneTime = onetimeInput ? onetimeInput.checked : false;
+
         const token = generate12CharToken();
         const submitBtn = document.getElementById('create-token-btn');
         try {
@@ -1203,9 +1265,12 @@ if (createTokenForm) {
                 token: token,
                 label: label,
                 active: true,
+                oneTimeUse: isOneTime,
+                usesCount: 0,
                 createdAt: new Date().toISOString()
             });
             if (input) input.value = '';
+            if (onetimeInput) onetimeInput.checked = false;
         } catch (err) {
             console.error('[Control] Error creating auth token:', err);
             alert('Failed to create auth token: ' + err.message);
