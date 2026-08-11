@@ -1128,13 +1128,13 @@ function updateTokensMetrics(tokens) {
     }
 }
 
-// Real-time Firestore observer for school_auth_tokens collection
+// Real-time Firestore observer for tokens collection
 function initTokensFirestoreListener() {
     const tokensTbody = document.getElementById('tokens-tbody');
     if (!tokensTbody) return;
 
     try {
-        const tokensRef = collection(db, "school_auth_tokens");
+        const tokensRef = collection(db, "tokens");
         unsubscribeTokens = onSnapshot(tokensRef, (snapshot) => {
             rawTokens = [];
             snapshot.forEach((docSnap) => {
@@ -1172,10 +1172,10 @@ function initTokensFirestoreListener() {
                                     <span>Firestore Security Rules Required</span>
                                 </div>
                                 <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
-                                    Firebase Cloud Firestore requires security rules for the <code>school_auth_tokens</code> collection. Please update your Rules in the <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong> tab:
+                                    Firebase Cloud Firestore requires security rules for the <code>tokens</code> collection. Please update your Rules in the <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong> tab:
                                 </p>
                                 <pre style="background: #121016; border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-purple); overflow-x: auto; margin-bottom: 0.75rem; user-select: text; -webkit-user-select: text;">
-match /school_auth_tokens/{tokenId} {
+match /tokens/{tokenId} {
   allow get, update: if true;
   allow list, create, delete: if request.auth != null && request.auth.token.email == 'dolphin.kden@gmail.com';
 }</pre>
@@ -1320,7 +1320,7 @@ function renderTokensTable(tokens) {
             const id = e.currentTarget.getAttribute('data-id');
             const newActive = e.currentTarget.checked;
             try {
-                const docRef = doc(db, "school_auth_tokens", id);
+                const docRef = doc(db, "tokens", id);
                 await setDoc(docRef, { active: newActive }, { merge: true });
             } catch (err) {
                 console.error('[Control] Error toggling token status:', err);
@@ -1336,7 +1336,7 @@ function renderTokensTable(tokens) {
             const id = e.currentTarget.getAttribute('data-id');
             const newOneTime = e.currentTarget.checked;
             try {
-                const docRef = doc(db, "school_auth_tokens", id);
+                const docRef = doc(db, "tokens", id);
                 await setDoc(docRef, { oneTimeUse: newOneTime }, { merge: true });
             } catch (err) {
                 console.error('[Control] Error toggling one-time use:', err);
@@ -1352,7 +1352,7 @@ function renderTokensTable(tokens) {
             const id = e.currentTarget.getAttribute('data-id');
             if (confirm('Are you sure you want to delete this auth token?')) {
                 try {
-                    const docRef = doc(db, "school_auth_tokens", id);
+                    const docRef = doc(db, "tokens", id);
                     await deleteDoc(docRef);
                 } catch (err) {
                     console.error('[Control] Error deleting token:', err);
@@ -1403,7 +1403,7 @@ if (createTokenForm) {
         const submitBtn = document.getElementById('create-token-btn');
         try {
             if (submitBtn) submitBtn.disabled = true;
-            const docRef = doc(db, "school_auth_tokens", token);
+            const docRef = doc(db, "tokens", token);
             await setDoc(docRef, {
                 token: token,
                 tokenType: tokenType,
