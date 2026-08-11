@@ -1,1 +1,0 @@
-feat: add SEO meta tags and optimize Open Graph and Twitter card configurations in index.html
