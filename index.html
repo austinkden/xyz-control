@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZY51JBLESQ"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
+        function gtag() { dataLayer.push(arguments); }
         gtag('js', new Date());
 
         gtag('config', 'G-ZY51JBLESQ');
@@ -26,18 +27,22 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
+
 <body>
     <!-- Top Navigation Bar -->
     <header class="ctrl-navbar">
         <div class="ctrl-nav-container">
             <div class="ctrl-logo">
-                <span class="logo-brand"><span class="logo-accent">astrong</span><span class="logo-sub">.xyz</span></span>
+                <span class="logo-brand"><span class="logo-accent">astrong</span><span
+                        class="logo-sub">.xyz</span></span>
                 <span class="ctrl-badge">CONTROL</span>
             </div>
-            
+
             <div class="ctrl-nav-right">
                 <a href="https://astrong.xyz/" class="ctrl-nav-link">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-arrow-left">
                         <line x1="19" y1="12" x2="5" y2="12"></line>
                         <polyline points="12 19 5 12 12 5"></polyline>
                     </svg>
@@ -55,26 +60,33 @@
         <section id="login-section" class="ctrl-card login-card" style="display: none;">
             <div class="login-header">
                 <div class="shield-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield">
-                        <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-shield">
+                        <path
+                            d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
                     </svg>
                 </div>
                 <div class="portal-title">Control Panel Access</div>
                 <p class="login-desc">Authentication required to view device telemetry and access logs.</p>
             </div>
-            
+
             <div class="login-action-container">
                 <button id="google-login-btn" class="ctrl-btn google-btn">
                     <svg width="18" height="18" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                        <path fill="#4285F4"
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853"
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05"
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                        <path fill="#EA4335"
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                     </svg>
                     <span>Sign in with Google</span>
                 </button>
             </div>
-            
+
             <div id="login-error" class="login-error-msg" style="display: none;"></div>
         </section>
 
@@ -137,13 +149,15 @@
                 <div class="controls-bar">
                     <div class="search-box">
                         <i data-lucide="search"></i>
-                        <input type="text" id="search-input" placeholder="Search IP, Device ID, OS, Browser, City, Country..." autocomplete="off">
+                        <input type="text" id="search-input"
+                            placeholder="Search IP, Device ID, OS, Browser, City, Country..." autocomplete="off">
                     </div>
 
                     <div class="filter-group">
                         <!-- Custom Dropdown: Device Type Filter -->
                         <div class="custom-dropdown" id="dropdown-type">
-                            <button type="button" class="custom-dropdown-btn" id="btn-type-filter" aria-label="Filter by Device Type">
+                            <button type="button" class="custom-dropdown-btn" id="btn-type-filter"
+                                aria-label="Filter by Device Type">
                                 <span class="dropdown-label">All Devices</span>
                                 <i data-lucide="chevron-down" class="custom-dropdown-chevron"></i>
                             </button>
@@ -157,7 +171,8 @@
 
                         <!-- Custom Dropdown: Device Status Filter -->
                         <div class="custom-dropdown" id="dropdown-status">
-                            <button type="button" class="custom-dropdown-btn" id="btn-status-filter" aria-label="Filter by Status">
+                            <button type="button" class="custom-dropdown-btn" id="btn-status-filter"
+                                aria-label="Filter by Status">
                                 <span class="dropdown-label">Default</span>
                                 <i data-lucide="chevron-down" class="custom-dropdown-chevron"></i>
                             </button>
@@ -205,7 +220,8 @@
                                     <span>OS & Browser</span>
                                     <i data-lucide="arrow-up-down" class="sort-icon"></i>
                                 </th>
-                                <th class="sortable-th active-sort desc" data-sort="lastSeen" title="Sort by Last Active Time">
+                                <th class="sortable-th active-sort desc" data-sort="lastSeen"
+                                    title="Sort by Last Active Time">
                                     <span>Last Active</span>
                                     <i data-lucide="arrow-down" class="sort-icon"></i>
                                 </th>
@@ -252,11 +268,18 @@
                 </div>
 
                 <!-- Create Token Bar -->
-                <div class="controls-bar">
+                <div class="controls-bar token-controls-bar">
                     <form id="create-token-form" class="create-token-form">
+                        <div class="target-select-wrapper" title="Auth Token Type Context">
+                            <i data-lucide="shield" class="target-select-icon"></i>
+                            <select id="token-type-select" class="token-target-select">
+                                <option value="school">School</option>
+                            </select>
+                        </div>
                         <div class="search-box label-box">
                             <i data-lucide="tag"></i>
-                            <input type="text" id="token-label-input" placeholder="Token label..." required autocomplete="off">
+                            <input type="text" id="token-label-input" placeholder="Token label..." required
+                                autocomplete="off">
                         </div>
                         <div class="create-onetime-toggle-group" title="Automatically deactivate token after first use">
                             <span class="toggle-label-text">One-time use</span>
@@ -334,7 +357,8 @@
                         <div class="detail-item" style="grid-column: span 2;">
                             <span class="detail-label">Custom Device Name</span>
                             <div class="ctrl-input-group">
-                                <input type="text" id="detail-custom-name-input" placeholder="e.g. Austin's Laptop, Office PC..." />
+                                <input type="text" id="detail-custom-name-input"
+                                    placeholder="e.g. Austin's Laptop, Office PC..." />
                                 <button id="detail-save-name-btn" class="ctrl-input-btn">Save Name</button>
                             </div>
                         </div>
@@ -497,4 +521,5 @@
     <script type="module" src="script.js"></script>
     <script src="/universal.js" defer></script>
 </body>
+
 </html>

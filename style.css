@@ -1691,3 +1691,151 @@ th,
     color: var(--error-red);
     background-color: rgba(248, 113, 113, 0.12);
 }
+
+/* Subdomain Badges & Page History Enhancements */
+.subdomain-badge {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+    background-color: var(--accent-purple-bg);
+    color: var(--accent-purple);
+    border: 1px solid rgba(136, 89, 255, 0.25);
+    user-select: none;
+    -webkit-user-select: none;
+    white-space: nowrap;
+}
+
+.subdomain-badge.subdomain-schedule {
+    background-color: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.25);
+}
+
+.subdomain-badge.subdomain-control {
+    background-color: rgba(168, 85, 247, 0.14);
+    color: #c084fc;
+    border-color: rgba(168, 85, 247, 0.25);
+}
+
+.subdomain-badge.subdomain-about {
+    background-color: rgba(251, 146, 60, 0.12);
+    color: #fb923c;
+    border-color: rgba(251, 146, 60, 0.25);
+}
+
+.subdomain-badge.subdomain-utility {
+    background-color: rgba(52, 211, 153, 0.12);
+    color: #34d399;
+    border-color: rgba(52, 211, 153, 0.25);
+}
+
+.history-item-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.history-url-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.history-page-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.88rem;
+}
+
+.history-details-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.history-referrer {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Enhanced Token Controls Bar */
+.token-controls-bar {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.search-box.code-box {
+    display: flex;
+    align-items: center;
+    min-width: 200px;
+    position: relative;
+}
+
+.token-auto-gen-btn {
+    background: transparent;
+    border: none;
+    color: var(--accent-purple);
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.token-auto-gen-btn:hover {
+    background-color: var(--accent-purple-bg);
+    color: var(--text-primary);
+}
+
+.target-select-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    padding: 0 0.75rem;
+    border-radius: 8px;
+    height: 42px;
+    min-height: 42px;
+    transition: border-color 0.2s ease;
+}
+
+.target-select-wrapper:hover {
+    border-color: var(--border-hover);
+}
+
+.target-select-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.token-target-select {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    padding-right: 0.5rem;
+}
+
+.token-target-select option {
+    background-color: var(--surface-color);
+    color: var(--text-primary);
+}

@@ -567,6 +567,10 @@ function renderDevicesTable() {
         const browser = (dev.browser?.name || '').toLowerCase();
         const city = (dev.network?.city || '').toLowerCase();
         const country = (dev.network?.country || '').toLowerCase();
+        const lastPath = (dev.meta?.lastPath || '').toLowerCase();
+        const lastSubdomain = (dev.meta?.lastSubdomain || '').toLowerCase();
+        const views = dev.recentViews || [];
+        const recentSubdomainsOrUrls = views.map(v => `${v.subdomain || ''} ${v.hostname || ''} ${v.url || ''} ${v.displayPath || ''} ${v.title || ''}`).join(' ').toLowerCase();
 
         const matchesSearch = !searchTerm || 
             ip.includes(searchTerm) || 
@@ -575,7 +579,10 @@ function renderDevicesTable() {
             os.includes(searchTerm) || 
             browser.includes(searchTerm) || 
             city.includes(searchTerm) || 
-            country.includes(searchTerm);
+            country.includes(searchTerm) ||
+            lastPath.includes(searchTerm) ||
+            lastSubdomain.includes(searchTerm) ||
+            recentSubdomainsOrUrls.includes(searchTerm);
 
         // Type Filter
         const matchesType = selectedType === 'all' || (dev.deviceType || '').toLowerCase() === selectedType.toLowerCase();
@@ -771,6 +778,59 @@ function renderDevicesTable() {
 }
 
 // 5. Helper Formatting Functions
+function parseSubdomainPageEntry(v) {
+    if (!v) return { url: '', hostname: '', subdomain: 'main', path: '/', displayPath: '/', badgeLabel: 'astrong.xyz', title: '' };
+    
+    let urlStr = v.url || '';
+    let hostname = v.hostname || '';
+    let path = v.path || '';
+    let displayPath = v.displayPath || '';
+    let subdomain = v.subdomain || '';
+    let title = v.title || '';
+
+    // If missing hostname/subdomain (legacy entry), parse from URL
+    if (!hostname && urlStr) {
+        try {
+            const parsedUrl = new URL(urlStr);
+            hostname = parsedUrl.hostname;
+            if (!path) path = parsedUrl.pathname;
+        } catch (e) {}
+    }
+
+    if (!subdomain && hostname) {
+        if (hostname.endsWith('.astrong.xyz')) {
+            const sub = hostname.replace('.astrong.xyz', '');
+            subdomain = (sub && sub !== 'www') ? sub : 'main';
+        } else if (hostname !== 'astrong.xyz' && hostname.includes('.')) {
+            subdomain = hostname.split('.')[0];
+        } else {
+            subdomain = 'main';
+        }
+    }
+
+    if (!subdomain) subdomain = 'main';
+
+    if (!displayPath) {
+        if (hostname) {
+            displayPath = hostname + (path === '/' ? '' : path);
+        } else {
+            displayPath = path || '/';
+        }
+    }
+
+    const badgeLabel = hostname || (subdomain !== 'main' ? `${subdomain}.astrong.xyz` : 'astrong.xyz');
+
+    return {
+        url: urlStr,
+        hostname: hostname,
+        subdomain: subdomain,
+        path: path,
+        displayPath: displayPath,
+        badgeLabel: badgeLabel,
+        title: title
+    };
+}
+
 function formatRelativeTime(isoStr) {
     if (!isoStr) return '--';
     const timestamp = new Date(isoStr).getTime();
@@ -857,6 +917,18 @@ function openDeviceModal(dev) {
     document.getElementById('detail-language').textContent = dev.browser?.language || '--';
     document.getElementById('detail-timezone').textContent = dev.locale?.timeZone || '--';
 
+    const lastPathRaw = dev.meta?.lastPath || '';
+    const views = dev.recentViews || [];
+    let lastPageDisplay = '--';
+    if (lastPathRaw) {
+        lastPageDisplay = lastPathRaw;
+    } else if (views.length > 0) {
+        const lastView = parseSubdomainPageEntry(views[views.length - 1]);
+        lastPageDisplay = lastView.displayPath;
+    }
+    const lastPageEl = document.getElementById('detail-last-page');
+    if (lastPageEl) lastPageEl.textContent = lastPageDisplay;
+
     // Hardware Tab
     document.getElementById('detail-screen').textContent = `${dev.hardware?.screenWidth} x ${dev.hardware?.screenHeight}`;
     document.getElementById('detail-avail-screen').textContent = `${dev.hardware?.screenAvailWidth} x ${dev.hardware?.screenAvailHeight}`;
@@ -887,17 +959,24 @@ function openDeviceModal(dev) {
 
     // Page History Tab
     const historyContainer = document.getElementById('history-container');
-    const views = dev.recentViews || [];
     if (views.length === 0) {
-        historyContainer.innerHTML = `<p class="empty-history-text">No page history logged.</p>`;
+        historyContainer.innerHTML = `<p class="empty-history-text">No page history logged for this device.</p>`;
     } else {
         let historyHtml = '';
         views.slice().reverse().forEach(v => {
+            const info = parseSubdomainPageEntry(v);
+            const refStr = (v.referrer && v.referrer !== 'Direct') ? `Referred from: ${escapeHtml(v.referrer)}` : '';
             historyHtml += `
                 <div class="history-item">
-                    <div>
-                        <div class="history-url">${v.title || v.path || 'Page'}</div>
-                        <span class="sub-info mono-text">${v.url || ''}</span>
+                    <div class="history-item-left">
+                        <div class="history-url-row">
+                            <span class="subdomain-badge subdomain-${escapeHtml(info.subdomain)}">${escapeHtml(info.badgeLabel)}</span>
+                            <span class="history-page-title">${escapeHtml(info.title || info.displayPath)}</span>
+                        </div>
+                        <div class="history-details-row">
+                            <span class="sub-info mono-text">${escapeHtml(info.url || info.displayPath)}</span>
+                            ${refStr ? `<span class="sub-info history-referrer">${refStr}</span>` : ''}
+                        </div>
                     </div>
                     <span class="history-time">${formatDate(v.timestamp)}</span>
                 </div>
@@ -1144,7 +1223,11 @@ function renderTokensTable(tokens) {
     tokensTbody.innerHTML = '';
     tokens.forEach(tok => {
         const tr = document.createElement('tr');
-        const shareUrl = `https://schedule.astrong.xyz/school?auth=school+${tok.token}`;
+        const targetPage = tok.targetPage || 'https://schedule.astrong.xyz/school';
+        const sep = targetPage.includes('?') ? '&' : '?';
+        const fullTokenStr = tok.token.includes('+') ? tok.token : `school+${tok.token}`;
+        const shareUrl = `${targetPage}${sep}auth=${fullTokenStr}`;
+        const displayLink = shareUrl.replace(/^https?:\/\//, '');
         
         let createdFormatted = 'Unknown';
         if (tok.createdAt) {
@@ -1166,7 +1249,7 @@ function renderTokensTable(tokens) {
             </td>
             <td>
                 <div class="token-link-cell">
-                    <span class="token-url-text" title="${escapeHtml(shareUrl)}">schedule.astrong.xyz/school?auth=school+${escapeHtml(tok.token)}</span>
+                    <span class="token-url-text" title="${escapeHtml(shareUrl)}">${escapeHtml(displayLink)}</span>
                     <button type="button" class="copy-btn" data-url="${escapeHtml(shareUrl)}" title="Copy Pre-Verification Link">
                         <i data-lucide="copy"></i>
                         <span>Copy</span>
@@ -1272,6 +1355,17 @@ function renderTokensTable(tokens) {
     });
 }
 
+// Auto-generate code button listener
+const autoGenCodeBtn = document.getElementById('auto-gen-code-btn');
+if (autoGenCodeBtn) {
+    autoGenCodeBtn.addEventListener('click', () => {
+        const codeInput = document.getElementById('token-code-input');
+        if (codeInput) {
+            codeInput.value = generate12CharToken();
+        }
+    });
+}
+
 // Create New Token Form Handler
 const createTokenForm = document.getElementById('create-token-form');
 if (createTokenForm) {
@@ -1281,23 +1375,39 @@ if (createTokenForm) {
         const label = input ? input.value.trim() : '';
         if (!label) return;
 
+        const typeSelect = document.getElementById('token-type-select');
+        const tokenType = typeSelect ? typeSelect.value : 'school';
+
+        const codeInput = document.getElementById('token-code-input');
+        let customCode = codeInput ? codeInput.value.trim() : '';
+        if (customCode) {
+            customCode = customCode.replace(/[^a-zA-Z0-9_-]/g, '');
+        }
+        const rawCode = customCode || generate12CharToken();
+        const token = rawCode.startsWith(`${tokenType}+`) ? rawCode : `${tokenType}+${rawCode}`;
+
+        const targetSelect = document.getElementById('token-target-select');
+        const targetPage = targetSelect ? targetSelect.value : (tokenType === 'school' ? 'https://schedule.astrong.xyz/school' : 'https://schedule.astrong.xyz/school');
+
         const onetimeInput = document.getElementById('token-onetime-input');
         const isOneTime = onetimeInput ? onetimeInput.checked : false;
 
-        const token = generate12CharToken();
         const submitBtn = document.getElementById('create-token-btn');
         try {
             if (submitBtn) submitBtn.disabled = true;
             const docRef = doc(db, "school_auth_tokens", token);
             await setDoc(docRef, {
                 token: token,
+                tokenType: tokenType,
                 label: label,
+                targetPage: targetPage,
                 active: true,
                 oneTimeUse: isOneTime,
                 usesCount: 0,
                 createdAt: new Date().toISOString()
             });
             if (input) input.value = '';
+            if (codeInput) codeInput.value = '';
             if (onetimeInput) onetimeInput.checked = false;
         } catch (err) {
             console.error('[Control] Error creating auth token:', err);
