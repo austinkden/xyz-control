@@ -256,12 +256,15 @@
                     <form id="create-token-form" class="create-token-form">
                         <div class="search-box label-box">
                             <i data-lucide="tag"></i>
-                            <input type="text" id="token-label-input" placeholder="Token label (e.g., Mom, Counselor, John...)" required autocomplete="off">
+                            <input type="text" id="token-label-input" placeholder="Token label..." required autocomplete="off">
                         </div>
-                        <label class="one-time-checkbox-label" title="Automatically deactivate token after first use">
-                            <input type="checkbox" id="token-onetime-input">
-                            <span>One-time use</span>
-                        </label>
+                        <div class="create-onetime-toggle-group" title="Automatically deactivate token after first use">
+                            <span class="toggle-label-text">One-time use</span>
+                            <label class="ctrl-switch">
+                                <input type="checkbox" id="token-onetime-input">
+                                <span class="ctrl-switch-slider"></span>
+                            </label>
+                        </div>
                         <button type="submit" id="create-token-btn" class="ctrl-btn primary-btn">
                             <i data-lucide="plus"></i>
                             <span>Generate Token</span>
@@ -321,6 +324,7 @@
                     <button class="tab-btn" data-tab="tab-battery">Battery & System</button>
                     <button class="tab-btn" data-tab="tab-network">Network & Geo</button>
                     <button class="tab-btn" data-tab="tab-history">Page History</button>
+                    <button class="tab-btn" data-tab="tab-token-usage">Token Usage</button>
                     <button class="tab-btn" data-tab="tab-json">Raw JSON</button>
                 </div>
 
@@ -471,6 +475,13 @@
                 <div id="tab-history" class="tab-content">
                     <div id="history-container" class="history-list">
                         <p class="empty-history-text">No recent page views recorded for this device.</p>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Token Usage -->
+                <div id="tab-token-usage" class="tab-content">
+                    <div id="token-usage-container" class="history-list">
+                        <p class="empty-history-text">No token usages recorded for this device.</p>
                     </div>
                 </div>
 

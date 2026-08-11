@@ -906,6 +906,34 @@ function openDeviceModal(dev) {
         historyContainer.innerHTML = historyHtml;
     }
 
+    // Token Usage Tab
+    const tokenUsageContainer = document.getElementById('token-usage-container');
+    if (tokenUsageContainer) {
+        const usages = dev.tokenUsages || [];
+        if (usages.length === 0) {
+            tokenUsageContainer.innerHTML = `<p class="empty-history-text">No auth token usages recorded for this device.</p>`;
+        } else {
+            let usageHtml = '';
+            usages.slice().reverse().forEach(u => {
+                const typeBadge = u.tokenType ? u.tokenType.toUpperCase() : 'TOKEN';
+                usageHtml += `
+                    <div class="history-item">
+                        <div>
+                            <div class="history-url" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                <span class="token-code">${escapeHtml(u.token)}</span>
+                                <strong style="color: var(--text-primary); font-size: 0.85rem;">${escapeHtml(u.label || 'Unlabeled Token')}</strong>
+                                <span style="font-size: 0.7rem; font-family: var(--font-mono); padding: 0.15rem 0.45rem; background: var(--accent-purple-bg); color: var(--accent-purple); border-radius: 4px;">${escapeHtml(typeBadge)}</span>
+                            </div>
+                            <span class="sub-info mono-text">${escapeHtml(u.page || '/')}</span>
+                        </div>
+                        <span class="history-time">${formatDate(u.usedAt || u.timestamp)}</span>
+                    </div>
+                `;
+            });
+            tokenUsageContainer.innerHTML = usageHtml;
+        }
+    }
+
     // JSON Raw Viewer Tab
     document.getElementById('json-viewer').textContent = JSON.stringify(formatDeviceForJson(dev), null, 2);
 
