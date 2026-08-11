@@ -1172,12 +1172,12 @@ function initTokensFirestoreListener() {
                                     <span>Firestore Security Rules Required</span>
                                 </div>
                                 <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
-                                    Firebase Cloud Firestore requires security rules for the new <code>school_auth_tokens</code> collection. Please add the following snippet to your Rules in the <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong> tab:
+                                    Firebase Cloud Firestore requires security rules for the <code>school_auth_tokens</code> collection. Please update your Rules in the <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong> tab:
                                 </p>
                                 <pre style="background: #121016; border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-purple); overflow-x: auto; margin-bottom: 0.75rem; user-select: text; -webkit-user-select: text;">
 match /school_auth_tokens/{tokenId} {
-  allow get: if true;
-  allow list, create, update, delete: if request.auth != null && request.auth.token.email == 'dolphin.kden@gmail.com';
+  allow get, update: if true;
+  allow list, create, delete: if request.auth != null && request.auth.token.email == 'dolphin.kden@gmail.com';
 }</pre>
                                 <p style="font-size: 0.8rem; color: var(--text-muted);">
                                     Once rules are published in Firebase Console, refresh this page to manage your tokens.
@@ -1199,6 +1199,14 @@ match /school_auth_tokens/{tokenId} {
                 `;
             }
         });
+
+        // Auto-refresh tokens uses counter and tokens table every 5 seconds
+        setInterval(() => {
+            if (rawTokens.length > 0) {
+                updateTokensMetrics(rawTokens);
+                renderTokensTable(rawTokens);
+            }
+        }, 5000);
     } catch (e) {
         console.error('[Control] initTokensFirestoreListener error:', e);
     }
