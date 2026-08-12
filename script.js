@@ -1133,7 +1133,7 @@ exportBtn.addEventListener('click', () => {
 });
 
 // =========================================================================
-// 8. SCHOOL AUTH TOKENS MANAGEMENT
+// 8. TOKENS MANAGEMENT
 // =========================================================================
 
 // Main Dashboard View Tab Switcher
@@ -1264,7 +1264,7 @@ match /tokens/{tokenId} {
                 tokensTbody.innerHTML = `
                     <tr>
                         <td colspan="8" class="table-loading-cell" style="color: var(--error-red);">
-                            Error loading School Auth Tokens from Cloud Firestore: ${escapeHtml(error.message)}
+                            Error loading Tokens from Cloud Firestore: ${escapeHtml(error.message)}
                         </td>
                     </tr>
                 `;
@@ -1283,7 +1283,7 @@ match /tokens/{tokenId} {
     }
 }
 
-// Render School Auth Tokens table
+// Render Tokens table
 function renderTokensTable(tokens) {
     const tokensTbody = document.getElementById('tokens-tbody');
     if (!tokensTbody) return;
@@ -1292,7 +1292,7 @@ function renderTokensTable(tokens) {
         tokensTbody.innerHTML = `
             <tr>
                 <td colspan="8" class="table-loading-cell">
-                    <span>No school auth tokens created yet. Enter a label above and click "Generate Token" to create one.</span>
+                    <span>No tokens created yet. Enter a label above and click "Generate Token" to create one.</span>
                 </td>
             </tr>
         `;
@@ -1320,37 +1320,43 @@ function renderTokensTable(tokens) {
         }
 
         tr.innerHTML = `
-            <td>
+            <td data-label="Label" class="token-label-td">
                 <strong>${escapeHtml(tok.label)}</strong>
             </td>
-            <td>
+            <td data-label="Token" class="token-code-td">
                 <span class="token-code">${escapeHtml(tok.token)}</span>
             </td>
-            <td>
+            <td data-label="Link" class="token-link-td">
                 <div class="token-link-cell">
                     <span class="token-url-text" title="${escapeHtml(shareUrl)}">${escapeHtml(displayLink)}</span>
-                    <button type="button" class="copy-btn" data-url="${escapeHtml(shareUrl)}" title="Copy Pre-Verification Link">
+                    <button type="button" class="copy-btn" data-url="${escapeHtml(shareUrl)}" title="Copy Link">
                         <i data-lucide="copy"></i>
                         <span>Copy</span>
                     </button>
                 </div>
             </td>
-            <td>
+            <td data-label="Status" class="token-status-td">
+                <span class="mobile-td-label">Status</span>
                 <label class="ctrl-switch" title="${tok.active ? 'Active (click to deactivate)' : 'Deactivated (click to activate)'}">
                     <input type="checkbox" class="toggle-status-checkbox" data-id="${escapeHtml(tok.id)}" ${tok.active ? 'checked' : ''}>
                     <span class="ctrl-switch-slider"></span>
                 </label>
             </td>
-            <td>
-                <label class="ctrl-switch" title="${tok.oneTimeUse ? 'One-time use enabled (auto-deactivates after 1 use)' : 'Multi-use enabled (click to enable one-time use)'}">
+            <td data-label="One-Time" class="token-onetime-td">
+                <span class="mobile-td-label">One-Time</span>
+                <label class="ctrl-switch" title="${tok.oneTimeUse ? 'One-time use enabled' : 'Multi-use enabled'}">
                     <input type="checkbox" class="toggle-onetime-checkbox" data-id="${escapeHtml(tok.id)}" ${tok.oneTimeUse ? 'checked' : ''}>
                     <span class="ctrl-switch-slider"></span>
                 </label>
             </td>
-            <td>
+            <td data-label="Uses" class="token-uses-td">
+                <span class="mobile-td-label">Uses</span>
                 <span class="uses-badge">${tok.usesCount || 0}</span>
             </td>
-            <td>${createdFormatted}</td>
+            <td data-label="Created" class="token-created-td">
+                <span class="mobile-td-label">Created</span>
+                <span class="token-date-text">${createdFormatted}</span>
+            </td>
             <td class="actions-td">
                 <button type="button" class="delete-token-btn" data-id="${escapeHtml(tok.id)}" title="Delete Token">
                     <i data-lucide="trash-2"></i>

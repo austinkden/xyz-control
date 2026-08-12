@@ -1839,3 +1839,198 @@ th,
     background-color: var(--surface-color);
     color: var(--text-primary);
 }
+
+/* Tokens Specific Responsive & Mobile Card Layout */
+#tokens-tab-content .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 600px;
+}
+
+.mobile-td-label {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .token-controls-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .create-token-form {
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        width: 100%;
+    }
+    .create-token-form .search-box.label-box {
+        flex: 1 1 200px;
+        width: 100%;
+    }
+    .target-select-wrapper {
+        flex: 0 0 auto;
+    }
+    .create-onetime-toggle-group {
+        flex: 0 0 auto;
+    }
+    #create-token-btn {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .tokens-table {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
+    .tokens-table,
+    .tokens-table thead,
+    .tokens-table tbody,
+    .tokens-table th,
+    .tokens-table td,
+    .tokens-table tr {
+        display: block;
+    }
+
+    .tokens-table thead {
+        display: none;
+    }
+
+    .tokens-table tbody tr {
+        background-color: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        margin-bottom: 0.85rem;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        position: relative;
+    }
+
+    .tokens-table td {
+        padding: 0;
+        border-bottom: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .mobile-td-label {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .tokens-table .token-label-td {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.6rem;
+        margin-bottom: 0.2rem;
+        padding-right: 2.5rem;
+    }
+
+    .tokens-table .token-code-td {
+        justify-content: space-between;
+    }
+
+    .tokens-table .token-code-td::before {
+        content: "TOKEN";
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+    }
+
+    .tokens-table .token-link-td {
+        width: 100%;
+    }
+
+    .tokens-table .token-link-cell {
+        width: 100%;
+        justify-content: space-between;
+        background-color: var(--surface-variant);
+        padding: 0.4rem 0.65rem;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        box-sizing: border-box;
+    }
+
+    .tokens-table .token-url-text {
+        max-width: calc(100vw - 165px);
+        font-size: 0.76rem;
+    }
+
+    .tokens-table .actions-td {
+        position: absolute;
+        top: 0.85rem;
+        right: 0.85rem;
+        width: auto;
+        padding: 0;
+    }
+}
+
+@media (max-width: 600px) {
+    .ctrl-tab-bar {
+        gap: 0.4rem;
+        margin-bottom: 1rem;
+    }
+
+    .ctrl-main-tab {
+        flex: 1;
+        justify-content: center;
+        padding: 0.55rem 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    #tokens-tab-content .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+        max-width: 100%;
+        gap: 0.5rem;
+    }
+
+    .create-token-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
+        width: 100%;
+    }
+
+    .create-token-form .search-box.label-box {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .target-select-wrapper {
+        grid-column: 1 / 2;
+        width: 100%;
+        justify-content: center;
+        height: 42px;
+        box-sizing: border-box;
+    }
+
+    .create-onetime-toggle-group {
+        grid-column: 2 / 3;
+        width: 100%;
+        justify-content: center;
+        height: 42px;
+        box-sizing: border-box;
+    }
+
+    #create-token-btn {
+        grid-column: 1 / -1;
+        width: 100%;
+        height: 42px;
+        justify-content: center;
+        font-size: 0.88rem;
+    }
+}
+
