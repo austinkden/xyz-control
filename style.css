@@ -46,7 +46,7 @@
     padding: 0;
 }
 
-/* Custom Scrollbars */
+/* Custom Scrollbars - Theme Responsive & Rounded */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -57,18 +57,42 @@
 }
 
 ::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--text-primary) 20%, transparent);
-    border-radius: 4px;
+    background: color-mix(in srgb, var(--on-surface, #e6e1e5) 18%, transparent);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background-color 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-purple);
+    background: var(--primary, #8859ff);
+    border: 1px solid transparent;
+    background-clip: padding-box;
 }
 
-/* Firefox Support */
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+:root.light-mode ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--on-surface, #1d1b20) 22%, transparent);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+:root.light-mode ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary, #8859ff);
+    border: 1px solid transparent;
+    background-clip: padding-box;
+}
+
 * {
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--text-primary) 20%, transparent) transparent;
+    scrollbar-color: color-mix(in srgb, var(--on-surface, #e6e1e5) 18%, transparent) transparent;
+}
+
+:root.light-mode * {
+    scrollbar-color: color-mix(in srgb, var(--on-surface, #1d1b20) 22%, transparent) transparent;
 }
 
 
@@ -1617,7 +1641,7 @@ th,
     left: 3px;
     bottom: 3px;
     background-color: var(--text-muted);
-    transition: all 0.2s ease;
+    transition: transform 0.32s cubic-bezier(0.34, 1.4, 0.64, 1), background-color 0.2s ease;
     border-radius: 50%;
 }
 
