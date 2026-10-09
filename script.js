@@ -118,6 +118,110 @@ async function updateDeviceCustomName(deviceId, name) {
 }
 
 // Helper: Formats the device object so that recentViews is placed at the bottom of the JSON keys
+
+// Helper: Calculate Performance Formula for a device (Network & Standard Compute)
+function calculateDevicePerformance(dev) {
+    if (!dev) return { compositeScore: 50, standardScore: 50, networkScore: 50, rating: 'Moderate', badgeClass: 'perf-moderate', details: {} };
+
+    // Standard Compute Metrics
+    const cores = Number(dev.hardware?.cores || dev.hardware?.hardwareConcurrency || 0);
+    const ram = Number(dev.hardware?.deviceMemory || 0);
+    const dpr = Number(dev.screen?.devicePixelRatio || dev.hardware?.dpr || 1);
+    const renderer = (dev.hardware?.renderer || '').toLowerCase();
+
+    let cpuScore = 70;
+    if (cores > 0) {
+        if (cores >= 16) cpuScore = 100;
+        else if (cores >= 12) cpuScore = 95;
+        else if (cores >= 8) cpuScore = 90;
+        else if (cores >= 6) cpuScore = 78;
+        else if (cores >= 4) cpuScore = 65;
+        else if (cores >= 2) cpuScore = 45;
+        else cpuScore = 30;
+    }
+
+    let ramScore = 72;
+    if (ram > 0) {
+        if (ram >= 16) ramScore = 100;
+        else if (ram >= 8) ramScore = 88;
+        else if (ram >= 4) ramScore = 68;
+        else ramScore = 45;
+    }
+
+    let gpuScore = 75;
+    if (renderer) {
+        if (renderer.includes('apple') || renderer.includes('nvidia') || renderer.includes('radeon') || renderer.includes('adreno 7') || renderer.includes('mali-g7')) {
+            gpuScore = 95;
+        } else if (renderer.includes('intel') || renderer.includes('adreno 6') || renderer.includes('mali-g5')) {
+            gpuScore = 80;
+        } else if (renderer.includes('swiftshader') || renderer.includes('llvmpipe')) {
+            gpuScore = 35;
+        }
+    }
+    if (dpr > 2) gpuScore = Math.min(100, gpuScore + 5);
+
+    const standardScore = Math.round(0.45 * cpuScore + 0.40 * ramScore + 0.15 * gpuScore);
+
+    // Network Performance Metrics
+    const downlink = Number(dev.network?.downlinkMbps || dev.network?.downlink || 0);
+    const rtt = Number(dev.network?.rttMs || dev.network?.rtt || 0);
+    const connType = (dev.network?.effectiveType || dev.network?.connectionType || '').toLowerCase();
+
+    let dlScore = 75;
+    if (downlink > 0) {
+        if (downlink >= 25) dlScore = 100;
+        else dlScore = Math.min(100, Math.round((downlink / 25) * 100));
+    }
+
+    let rttScore = 75;
+    if (rtt > 0) {
+        if (rtt <= 30) rttScore = 100;
+        else if (rtt >= 300) rttScore = 25;
+        else rttScore = Math.round(100 - ((rtt - 30) / 270) * 75);
+    }
+
+    let typeScore = 80;
+    if (connType) {
+        if (connType === '4g' || connType.includes('wifi') || connType.includes('ethernet')) typeScore = 100;
+        else if (connType === '3g') typeScore = 65;
+        else if (connType === '2g') typeScore = 35;
+        else if (connType.includes('slow')) typeScore = 15;
+    }
+
+    const networkScore = Math.round(0.40 * dlScore + 0.40 * rttScore + 0.20 * typeScore);
+
+    // Composite Performance Score
+    const compositeScore = Math.round(0.55 * standardScore + 0.45 * networkScore);
+
+    let rating = 'Moderate';
+    let badgeClass = 'perf-moderate';
+    if (compositeScore >= 85) {
+        rating = 'Fast';
+        badgeClass = 'perf-fast';
+    } else if (compositeScore >= 68) {
+        rating = 'Good';
+        badgeClass = 'perf-good';
+    } else if (compositeScore < 45) {
+        rating = 'Low';
+        badgeClass = 'perf-low';
+    }
+
+    return {
+        compositeScore,
+        standardScore,
+        networkScore,
+        rating,
+        badgeClass,
+        details: {
+            cores: cores || 'Unknown',
+            ram: ram ? `${ram} GB` : 'Unknown',
+            downlink: downlink ? `${downlink} Mbps` : 'Unknown',
+            rtt: rtt ? `${rtt} ms` : 'Unknown',
+            connType: connType || 'Unknown'
+        }
+    };
+}
+
 function formatDeviceForJson(dev) {
     if (!dev) return dev;
     const ordered = {};
@@ -217,8 +321,6 @@ async function deleteDeviceRecord(deviceId) {
 }
 
 // 1. Firebase Authentication Observers & Handlers
-let rawTokens = [];
-let unsubscribeTokens = null;
 
 onAuthStateChanged(auth, (user) => {
     currentUser = user;
@@ -238,8 +340,7 @@ onAuthStateChanged(auth, (user) => {
         initTableSorting();
         updateSortHeaderUI();
         initFirestoreListener();
-        initTokensFirestoreListener();
-    } else {
+            } else {
         // Unauthenticated State
         renderSignedOutNav();
         loginSection.style.display = 'block';
@@ -250,10 +351,7 @@ onAuthStateChanged(auth, (user) => {
             unsubscribeDevices();
             unsubscribeDevices = null;
         }
-        if (unsubscribeTokens) {
-            unsubscribeTokens();
-            unsubscribeTokens = null;
-        }
+        
     }
 });
 
@@ -279,11 +377,18 @@ googleLoginBtn.addEventListener('click', async () => {
 
 function renderUserNav(user) {
     const avatarUrl = user.photoURL || 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+    const displayName = user.email || user.displayName || 'Admin User';
     authStateContainer.innerHTML = `
         <div class="user-profile-badge">
-            <img src="${avatarUrl}" alt="${user.displayName || 'Admin'}" class="user-avatar" />
-            <span class="user-email">${user.email || 'Admin User'}</span>
-            <button id="signout-btn" class="signout-btn">Sign Out</button>
+            <span class="user-email" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</span>
+            <img src="${avatarUrl}" alt="${escapeHtml(displayName)}" class="user-avatar" />
+            <button id="signout-btn" class="signout-btn signout-icon-btn" aria-label="Sign Out" title="Sign Out">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-out">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+            </button>
         </div>
     `;
 
@@ -472,6 +577,8 @@ function getSortValue(dev, sortKey) {
             if (isBanned) return 4;
             if (isHidden) return 5;
             return 6;
+        case 'performance':
+            return calculateDevicePerformance(dev).compositeScore;
         case 'device':
             return (dev.deviceType || '').toLowerCase() + (dev.deviceId || '').toLowerCase();
         case 'location':
@@ -638,18 +745,16 @@ function renderDevicesTable() {
         const statusLabel = isBanned ? 'Banned' : (isInControl ? 'In Control' : (isOnline ? 'Online' : 'Offline'));
         const isFlashing = flashingDeviceIds.has(dev.deviceId);
 
-        const deviceName = dev.customName || customNamesMap[dev.deviceId] || dev.deviceType || 'Desktop';
-
-        const locationStr = (dev.network?.city && dev.network?.city !== 'Unknown')
-            ? `${dev.network.city}, ${dev.network.country || ''}`
-            : (dev.network?.country || 'Unknown');
+        const customName = dev.customName || customNamesMap[dev.deviceId];
+        const statusDisplay = customName ? customName : statusLabel;
+        const perf = calculateDevicePerformance(dev);
 
         rowsHtml += `
             <tr data-device-id="${dev.deviceId}">
                 <td>
                     <div class="status-cell-container">
                         <span class="status-dot ${statusDotClass} ${isFlashing ? 'flash' : ''}" title="${statusLabel}"></span>
-                        <span class="device-custom-name-text" style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary);">${deviceName}</span>
+                        <span class="device-custom-name-text" style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary);">${statusDisplay}</span>
                         ${isInControl ? '<span class="badge-in-control">In Control</span>' : ''}
                         ${isBanned ? '<span class="badge-banned">Banned</span>' : ''}
                         ${isMuted ? '<span class="badge-muted">Muted</span>' : ''}
@@ -658,6 +763,16 @@ function renderDevicesTable() {
                 </td>
                 <td>
                     <div style="font-weight: 600;">${dev.deviceType || 'Desktop'}</div>
+                    <span class="sub-info mono-text">${dev.deviceId || '--'}</span>
+                </td>
+                <td>
+                    <div class="perf-badge ${perf.badgeClass}" title="Score: ${perf.compositeScore}/100 | Net: ${perf.networkScore} | Std: ${perf.standardScore}">
+                        <span class="perf-score-num">${perf.compositeScore}</span>
+                        <span class="perf-score-sep">•</span>
+                        <span class="perf-score-rating">${perf.rating}</span>
+                    </div>
+                    <div class="perf-breakdown-sub mono-text">Net ${perf.networkScore} / Std ${perf.standardScore}</div>
+                </td>
                     <span class="sub-info mono-text">${dev.deviceId || '--'}</span>
                 </td>
                 <td>
@@ -988,23 +1103,13 @@ function openDeviceModal(dev) {
     // Authentication Access Tab
     const authContainer = document.getElementById('auth-container');
     if (authContainer) {
-        const usages = dev.tokenUsages || [];
-        const hasValidSchoolToken = usages.some(u => u.tokenType === 'school' && (u.valid === true || u.status === 'valid' || (!u.status && u.valid !== false)));
-        const isSchoolVerified = !!(dev.authorizations?.schoolSchedule || dev.schoolVerified || hasValidSchoolToken);
+        const isSchoolVerified = !!(dev.authorizations?.schoolSchedule || dev.schoolVerified);
 
         const schoolStatusBadge = isSchoolVerified
             ? `<span style="font-size: 0.72rem; font-family: var(--font-mono); font-weight: 700; padding: 0.2rem 0.55rem; background: rgba(52, 199, 89, 0.15); color: #34c759; border-radius: 4px; border: 1px solid rgba(52, 199, 89, 0.3);">ACCESS GRANTED</span>`
             : `<span style="font-size: 0.72rem; font-family: var(--font-mono); font-weight: 700; padding: 0.2rem 0.55rem; background: rgba(142, 142, 147, 0.15); color: var(--text-muted); border-radius: 4px; border: 1px solid rgba(142, 142, 147, 0.3);">NO ACCESS</span>`;
 
-        let grantedViaText = 'None';
-        if (isSchoolVerified) {
-            const validToken = usages.slice().reverse().find(u => u.tokenType === 'school' && (u.valid === true || u.status === 'valid' || (!u.status && u.valid !== false)));
-            if (validToken) {
-                grantedViaText = `Token Redeemed (${escapeHtml(validToken.token)}) - "${escapeHtml(validToken.label || 'Unlabeled')}"`;
-            } else {
-                grantedViaText = 'School Password Verification';
-            }
-        }
+        const grantedViaText = isSchoolVerified ? 'Password Verification' : 'None';
 
         authContainer.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 1rem;">
@@ -1037,51 +1142,33 @@ function openDeviceModal(dev) {
         `;
     }
 
-    // Token Usage Tab
-    const tokenUsageContainer = document.getElementById('token-usage-container');
-    if (tokenUsageContainer) {
-        const usages = dev.tokenUsages || [];
-        if (usages.length === 0) {
-            tokenUsageContainer.innerHTML = `<p class="empty-history-text">No auth token usages recorded for this device.</p>`;
-        } else {
-            let usageHtml = '';
-            usages.slice().reverse().forEach(u => {
-                const typeBadge = u.tokenType ? u.tokenType.toUpperCase() : 'TOKEN';
-                
-                const isInvalid = u.valid === false || u.status === 'invalid' || u.status === 'error';
-                const isInactive = u.status === 'inactive';
-                const isValid = !isInvalid && !isInactive;
-
-                let statusBadge = '';
-                let borderStyle = '';
-
-                if (isValid) {
-                    statusBadge = `<span style="font-size: 0.7rem; font-family: var(--font-mono); font-weight: 600; padding: 0.15rem 0.45rem; background: rgba(52, 199, 89, 0.15); color: #34c759; border-radius: 4px; border: 1px solid rgba(52, 199, 89, 0.3);">VALID</span>`;
-                } else if (isInactive) {
-                    statusBadge = `<span style="font-size: 0.7rem; font-family: var(--font-mono); font-weight: 600; padding: 0.15rem 0.45rem; background: rgba(255, 159, 10, 0.15); color: #ff9f0a; border-radius: 4px; border: 1px solid rgba(255, 159, 10, 0.3);">INACTIVE</span>`;
-                    borderStyle = 'border-left: 3px solid #ff9f0a;';
-                } else {
-                    statusBadge = `<span style="font-size: 0.7rem; font-family: var(--font-mono); font-weight: 600; padding: 0.15rem 0.45rem; background: rgba(255, 69, 58, 0.15); color: #ff453a; border-radius: 4px; border: 1px solid rgba(255, 69, 58, 0.3);">INVALID / ABUSE ATTEMPT</span>`;
-                    borderStyle = 'border-left: 3px solid #ff453a;';
-                }
-
-                usageHtml += `
-                    <div class="history-item" style="${borderStyle}">
-                        <div>
-                            <div class="history-url" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                                <span class="token-code">${escapeHtml(u.token)}</span>
-                                <strong style="color: var(--text-primary); font-size: 0.85rem;">${escapeHtml(u.label || 'Unlabeled Token')}</strong>
-                                <span style="font-size: 0.7rem; font-family: var(--font-mono); padding: 0.15rem 0.45rem; background: var(--accent-purple-bg); color: var(--accent-purple); border-radius: 4px;">${escapeHtml(typeBadge)}</span>
-                                ${statusBadge}
-                            </div>
-                            <span class="sub-info mono-text">${escapeHtml(u.page || '/')}</span>
-                        </div>
-                        <span class="history-time">${formatDate(u.usedAt || u.timestamp)}</span>
+    // Performance Box in Overview Tab
+    const perfBox = document.getElementById('detail-perf-box');
+    if (perfBox) {
+        const perf = calculateDevicePerformance(dev);
+        perfBox.innerHTML = `
+            <div class="perf-modal-card">
+                <div class="perf-modal-badge-row">
+                    <span class="perf-badge ${perf.badgeClass}">
+                        <span class="perf-score-num">${perf.compositeScore}</span>
+                        <span class="perf-score-sep">•</span>
+                        <span class="perf-score-rating">${perf.rating} Performance</span>
+                    </span>
+                </div>
+                <div class="perf-metric-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.6rem;">
+                    <div class="perf-sub-card" style="background: var(--surface-variant); padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Standard Compute</div>
+                        <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0.15rem 0;">${perf.standardScore}<span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">/100</span></div>
+                        <div style="font-size: 0.78rem; color: var(--text-secondary);">CPU Cores: ${perf.details.cores} | RAM: ${perf.details.ram}</div>
                     </div>
-                `;
-            });
-            tokenUsageContainer.innerHTML = usageHtml;
-        }
+                    <div class="perf-sub-card" style="background: var(--surface-variant); padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Network Speed & Latency</div>
+                        <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0.15rem 0;">${perf.networkScore}<span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">/100</span></div>
+                        <div style="font-size: 0.78rem; color: var(--text-secondary);">Downlink: ${perf.details.downlink} | RTT: ${perf.details.rtt}</div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     // JSON Raw Viewer Tab
@@ -1116,9 +1203,18 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // 7. Event Listeners for Filters & Controls
 searchInput.addEventListener('input', renderDevicesTable);
 
-refreshBtn.addEventListener('click', () => {
-    renderDevicesTable();
-});
+if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+        refreshBtn.classList.add('refreshing');
+        const icon = refreshBtn.querySelector('i, svg');
+        if (icon) icon.classList.add('spin-once');
+        renderDevicesTable();
+        setTimeout(() => {
+            refreshBtn.classList.remove('refreshing');
+            if (icon) icon.classList.remove('spin-once');
+        }, 600);
+    });
+}
 
 exportBtn.addEventListener('click', () => {
     if (rawDevices.length === 0) return;
@@ -1132,49 +1228,6 @@ exportBtn.addEventListener('click', () => {
     downloadAnchor.remove();
 });
 
-// =========================================================================
-// 8. TOKENS MANAGEMENT
-// =========================================================================
-
-// Main Dashboard View Tab Switcher
-const tabBtnTelemetry = document.getElementById('tab-btn-telemetry');
-const tabBtnTokens = document.getElementById('tab-btn-tokens');
-const telemetryTabContent = document.getElementById('telemetry-tab-content');
-const tokensTabContent = document.getElementById('tokens-tab-content');
-
-if (tabBtnTelemetry && tabBtnTokens && telemetryTabContent && tokensTabContent) {
-    tabBtnTelemetry.addEventListener('click', () => {
-        tabBtnTelemetry.classList.add('active');
-        tabBtnTokens.classList.remove('active');
-        telemetryTabContent.style.display = 'block';
-        tokensTabContent.style.display = 'none';
-    });
-
-    tabBtnTokens.addEventListener('click', () => {
-        tabBtnTokens.classList.add('active');
-        tabBtnTelemetry.classList.remove('active');
-        tokensTabContent.style.display = 'block';
-        telemetryTabContent.style.display = 'none';
-    });
-}
-
-// Generate random 12-character alphanumeric token string
-function generate12CharToken() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let res = '';
-    const array = new Uint8Array(12);
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-        crypto.getRandomValues(array);
-        for (let i = 0; i < 12; i++) {
-            res += chars.charAt(array[i] % chars.length);
-        }
-    } else {
-        for (let i = 0; i < 12; i++) {
-            res += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-    }
-    return res;
-}
 
 // Escape HTML utility to prevent XSS
 function escapeHtml(str) {
@@ -1185,320 +1238,4 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
-}
-
-// Update token summary metrics
-function updateTokensMetrics(tokens) {
-    const totalEl = document.getElementById('metric-total-tokens');
-    const activeEl = document.getElementById('metric-active-tokens');
-    
-    if (totalEl) totalEl.textContent = tokens.length;
-    if (activeEl) {
-        const activeCount = tokens.filter(t => t.active).length;
-        activeEl.textContent = activeCount;
-    }
-}
-
-// Real-time Firestore observer for tokens collection
-function initTokensFirestoreListener() {
-    const tokensTbody = document.getElementById('tokens-tbody');
-    if (!tokensTbody) return;
-
-    try {
-        const tokensRef = collection(db, "tokens");
-        unsubscribeTokens = onSnapshot(tokensRef, (snapshot) => {
-            rawTokens = [];
-            snapshot.forEach((docSnap) => {
-                const data = docSnap.data();
-                rawTokens.push({
-                    id: docSnap.id,
-                    token: data.token || docSnap.id,
-                    label: data.label || 'Unlabeled Token',
-                    active: data.active !== false,
-                    oneTimeUse: data.oneTimeUse === true,
-                    usesCount: data.usesCount || 0,
-                    createdAt: data.createdAt || null
-                });
-            });
-
-            // Sort by created timestamp descending
-            rawTokens.sort((a, b) => {
-                const timeA = new Date(a.createdAt || 0).getTime();
-                const timeB = new Date(b.createdAt || 0).getTime();
-                return timeB - timeA;
-            });
-
-            updateTokensMetrics(rawTokens);
-            renderTokensTable(rawTokens);
-        }, (error) => {
-            console.error('[Control] Tokens Snapshot Error:', error);
-            const isPermissionError = error.code === 'permission-denied' || (error.message && error.message.includes('permissions'));
-            if (isPermissionError) {
-                tokensTbody.innerHTML = `
-                    <tr>
-                        <td colspan="8" style="padding: 1.5rem; text-align: left;">
-                            <div style="background-color: rgba(248, 113, 113, 0.08); border: 1px solid rgba(248, 113, 113, 0.3); border-radius: 8px; padding: 1.25rem; color: var(--text-primary);">
-                                <div style="font-weight: 600; color: var(--error-red); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                                    <i data-lucide="shield-alert"></i>
-                                    <span>Firestore Security Rules Required</span>
-                                </div>
-                                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
-                                    Firebase Cloud Firestore requires security rules for the <code>tokens</code> collection. Please update your Rules in the <strong>Firebase Console &gt; Firestore Database &gt; Rules</strong> tab:
-                                </p>
-                                <pre style="background: #121016; border: 1px solid var(--border-color); padding: 0.75rem; border-radius: 6px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-purple); overflow-x: auto; margin-bottom: 0.75rem; user-select: text; -webkit-user-select: text;">
-match /tokens/{tokenId} {
-  allow get, update: if true;
-  allow list, create, delete: if request.auth != null && request.auth.token.email == 'dolphin.kden@gmail.com';
-}</pre>
-                                <p style="font-size: 0.8rem; color: var(--text-muted);">
-                                    Once rules are published in Firebase Console, refresh this page to manage your tokens.
-                                </p>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                if (window.lucide && typeof window.lucide.createIcons === 'function') {
-                    window.lucide.createIcons();
-                }
-            } else {
-                tokensTbody.innerHTML = `
-                    <tr>
-                        <td colspan="8" class="table-loading-cell" style="color: var(--error-red);">
-                            Error loading Tokens from Cloud Firestore: ${escapeHtml(error.message)}
-                        </td>
-                    </tr>
-                `;
-            }
-        });
-
-        // Auto-refresh tokens uses counter and tokens table every 5 seconds
-        setInterval(() => {
-            if (rawTokens.length > 0) {
-                updateTokensMetrics(rawTokens);
-                renderTokensTable(rawTokens);
-            }
-        }, 5000);
-    } catch (e) {
-        console.error('[Control] initTokensFirestoreListener error:', e);
-    }
-}
-
-// Render Tokens table
-function renderTokensTable(tokens) {
-    const tokensTbody = document.getElementById('tokens-tbody');
-    if (!tokensTbody) return;
-
-    if (tokens.length === 0) {
-        tokensTbody.innerHTML = `
-            <tr>
-                <td colspan="8" class="table-loading-cell">
-                    <span>No tokens created yet. Enter a label above and click "Generate Token" to create one.</span>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-
-    tokensTbody.innerHTML = '';
-    tokens.forEach(tok => {
-        const tr = document.createElement('tr');
-        const targetPage = tok.targetPage || 'https://schedule.astrong.xyz/school';
-        const sep = targetPage.includes('?') ? '&' : '?';
-        const fullTokenStr = tok.token.includes('+') ? tok.token : `school+${tok.token}`;
-        const shareUrl = `${targetPage}${sep}auth=${fullTokenStr}`;
-        const displayLink = shareUrl.replace(/^https?:\/\//, '');
-        
-        let createdFormatted = 'Unknown';
-        if (tok.createdAt) {
-            try {
-                createdFormatted = new Date(tok.createdAt).toLocaleDateString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                });
-            } catch (e) {}
-        }
-
-        tr.innerHTML = `
-            <td data-label="Label" class="token-label-td">
-                <strong>${escapeHtml(tok.label)}</strong>
-            </td>
-            <td data-label="Token" class="token-code-td">
-                <span class="token-code">${escapeHtml(tok.token)}</span>
-            </td>
-            <td data-label="Link" class="token-link-td">
-                <div class="token-link-cell">
-                    <span class="token-url-text" title="${escapeHtml(shareUrl)}">${escapeHtml(displayLink)}</span>
-                    <button type="button" class="copy-btn" data-url="${escapeHtml(shareUrl)}" title="Copy Link">
-                        <i data-lucide="copy"></i>
-                        <span>Copy</span>
-                    </button>
-                </div>
-            </td>
-            <td data-label="Status" class="token-status-td">
-                <span class="mobile-td-label">Status</span>
-                <label class="ctrl-switch" title="${tok.active ? 'Active (click to deactivate)' : 'Deactivated (click to activate)'}">
-                    <input type="checkbox" class="toggle-status-checkbox" data-id="${escapeHtml(tok.id)}" ${tok.active ? 'checked' : ''}>
-                    <span class="ctrl-switch-slider"></span>
-                </label>
-            </td>
-            <td data-label="One-Time" class="token-onetime-td">
-                <span class="mobile-td-label">One-Time</span>
-                <label class="ctrl-switch" title="${tok.oneTimeUse ? 'One-time use enabled' : 'Multi-use enabled'}">
-                    <input type="checkbox" class="toggle-onetime-checkbox" data-id="${escapeHtml(tok.id)}" ${tok.oneTimeUse ? 'checked' : ''}>
-                    <span class="ctrl-switch-slider"></span>
-                </label>
-            </td>
-            <td data-label="Uses" class="token-uses-td">
-                <span class="mobile-td-label">Uses</span>
-                <span class="uses-badge">${tok.usesCount || 0}</span>
-            </td>
-            <td data-label="Created" class="token-created-td">
-                <span class="mobile-td-label">Created</span>
-                <span class="token-date-text">${createdFormatted}</span>
-            </td>
-            <td class="actions-td">
-                <button type="button" class="delete-token-btn" data-id="${escapeHtml(tok.id)}" title="Delete Token">
-                    <i data-lucide="trash-2"></i>
-                </button>
-            </td>
-        `;
-
-        tokensTbody.appendChild(tr);
-    });
-
-    if (window.lucide && typeof window.lucide.createIcons === 'function') {
-        window.lucide.createIcons();
-    }
-
-    // Copy Button Handler
-    tokensTbody.querySelectorAll('.copy-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const url = e.currentTarget.getAttribute('data-url');
-            if (url && navigator.clipboard) {
-                navigator.clipboard.writeText(url).then(() => {
-                    btn.classList.add('copied');
-                    const span = btn.querySelector('span');
-                    if (span) span.textContent = 'Copied!';
-                    setTimeout(() => {
-                        btn.classList.remove('copied');
-                        if (span) span.textContent = 'Copy';
-                    }, 2000);
-                }).catch(err => {
-                    console.error('[Control] Clipboard copy failed:', err);
-                });
-            }
-        });
-    });
-
-    // Toggle Active Status Handler (Switch Checkbox)
-    tokensTbody.querySelectorAll('.toggle-status-checkbox').forEach(input => {
-        input.addEventListener('change', async (e) => {
-            const id = e.currentTarget.getAttribute('data-id');
-            const newActive = e.currentTarget.checked;
-            try {
-                const docRef = doc(db, "tokens", id);
-                await setDoc(docRef, { active: newActive }, { merge: true });
-            } catch (err) {
-                console.error('[Control] Error toggling token status:', err);
-                alert('Failed to update token status: ' + err.message);
-                e.currentTarget.checked = !newActive;
-            }
-        });
-    });
-
-    // Toggle One-Time Use Handler (Switch Checkbox)
-    tokensTbody.querySelectorAll('.toggle-onetime-checkbox').forEach(input => {
-        input.addEventListener('change', async (e) => {
-            const id = e.currentTarget.getAttribute('data-id');
-            const newOneTime = e.currentTarget.checked;
-            try {
-                const docRef = doc(db, "tokens", id);
-                await setDoc(docRef, { oneTimeUse: newOneTime }, { merge: true });
-            } catch (err) {
-                console.error('[Control] Error toggling one-time use:', err);
-                alert('Failed to update one-time use setting: ' + err.message);
-                e.currentTarget.checked = !newOneTime;
-            }
-        });
-    });
-
-    // Delete Token Handler
-    tokensTbody.querySelectorAll('.delete-token-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const id = e.currentTarget.getAttribute('data-id');
-            if (confirm('Are you sure you want to delete this auth token?')) {
-                try {
-                    const docRef = doc(db, "tokens", id);
-                    await deleteDoc(docRef);
-                } catch (err) {
-                    console.error('[Control] Error deleting token:', err);
-                    alert('Failed to delete token: ' + err.message);
-                }
-            }
-        });
-    });
-}
-
-// Auto-generate code button listener
-const autoGenCodeBtn = document.getElementById('auto-gen-code-btn');
-if (autoGenCodeBtn) {
-    autoGenCodeBtn.addEventListener('click', () => {
-        const codeInput = document.getElementById('token-code-input');
-        if (codeInput) {
-            codeInput.value = generate12CharToken();
-        }
-    });
-}
-
-// Create New Token Form Handler
-const createTokenForm = document.getElementById('create-token-form');
-if (createTokenForm) {
-    createTokenForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const input = document.getElementById('token-label-input');
-        const label = input ? input.value.trim() : '';
-        if (!label) return;
-
-        const typeSelect = document.getElementById('token-type-select');
-        const tokenType = typeSelect ? typeSelect.value : 'school';
-
-        const codeInput = document.getElementById('token-code-input');
-        let customCode = codeInput ? codeInput.value.trim() : '';
-        if (customCode) {
-            customCode = customCode.replace(/[^a-zA-Z0-9_-]/g, '');
-        }
-        const rawCode = customCode || generate12CharToken();
-        const token = rawCode.startsWith(`${tokenType}+`) ? rawCode : `${tokenType}+${rawCode}`;
-
-        const targetSelect = document.getElementById('token-target-select');
-        const targetPage = targetSelect ? targetSelect.value : (tokenType === 'school' ? 'https://schedule.astrong.xyz/school' : 'https://schedule.astrong.xyz/school');
-
-        const onetimeInput = document.getElementById('token-onetime-input');
-        const isOneTime = onetimeInput ? onetimeInput.checked : false;
-
-        const submitBtn = document.getElementById('create-token-btn');
-        try {
-            if (submitBtn) submitBtn.disabled = true;
-            const docRef = doc(db, "tokens", token);
-            await setDoc(docRef, {
-                token: token,
-                tokenType: tokenType,
-                label: label,
-                targetPage: targetPage,
-                active: true,
-                oneTimeUse: isOneTime,
-                usesCount: 0,
-                createdAt: new Date().toISOString()
-            });
-            if (input) input.value = '';
-            if (codeInput) codeInput.value = '';
-            if (onetimeInput) onetimeInput.checked = false;
-        } catch (err) {
-            console.error('[Control] Error creating auth token:', err);
-            alert('Failed to create auth token: ' + err.message);
-        } finally {
-            if (submitBtn) submitBtn.disabled = false;
-        }
-    });
 }

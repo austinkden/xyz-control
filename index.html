@@ -43,22 +43,19 @@
     <!-- Top Navigation Bar -->
     <header class="ctrl-navbar">
         <div class="ctrl-nav-container">
-            <div class="ctrl-logo">
-                <span class="logo-brand"><span class="logo-accent">astrong</span><span
-                        class="logo-sub">.xyz</span></span>
-                <span class="ctrl-badge">CONTROL</span>
-            </div>
-
-            <div class="ctrl-nav-right">
-                <a href="https://astrong.xyz/" class="ctrl-nav-link">
+            <div class="ctrl-nav-left">
+                <a href="https://astrong.xyz/" class="ctrl-nav-link back-to-site-link">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                        class="lucide lucide-arrow-left">
+                        class="lucide lucide-arrow-left nav-back-arrow">
                         <line x1="19" y1="12" x2="5" y2="12"></line>
                         <polyline points="12 19 5 12 12 5"></polyline>
                     </svg>
                     <span>Back to Site</span>
                 </a>
+            </div>
+
+            <div class="ctrl-nav-right">
                 <div id="auth-state-container" class="auth-state-container">
                     <div class="auth-loading-spinner" id="auth-spinner"></div>
                 </div>
@@ -79,7 +76,6 @@
                     </svg>
                 </div>
                 <div class="portal-title">Control Panel Access</div>
-                <p class="login-desc">Authentication required to view device telemetry and access logs.</p>
             </div>
 
             <div class="login-action-container">
@@ -112,18 +108,6 @@
 
         <!-- Dashboard Section (Displayed when signed in) -->
         <section id="dashboard-section" style="display: none;">
-            <!-- Dashboard Main Navigation Tabs -->
-            <div class="ctrl-tab-bar">
-                <button type="button" id="tab-btn-telemetry" class="ctrl-main-tab active">
-                    <i data-lucide="smartphone"></i>
-                    <span>Devices</span>
-                </button>
-                <button type="button" id="tab-btn-tokens" class="ctrl-main-tab">
-                    <i data-lucide="key-round"></i>
-                    <span>Tokens</span>
-                </button>
-            </div>
-
             <!-- Devices View -->
             <div id="telemetry-tab-content">
                 <!-- Metrics Summary Grid (3 Counters) -->
@@ -216,36 +200,33 @@
                         <thead>
                             <tr>
                                 <th class="sortable-th" data-sort="status" title="Sort by Status">
-                                    <span>Status</span>
-                                    <i data-lucide="arrow-up-down" class="sort-icon"></i>
+                                    <span class="th-content"><span>Status</span><i data-lucide="arrow-up-down" class="sort-icon"></i></span>
                                 </th>
                                 <th class="sortable-th" data-sort="device" title="Sort by Device Type & ID">
-                                    <span>Device & Type</span>
-                                    <i data-lucide="arrow-up-down" class="sort-icon"></i>
+                                    <span class="th-content"><span>Device & Type</span><i data-lucide="arrow-up-down" class="sort-icon"></i></span>
+                                </th>
+                                <th class="sortable-th" data-sort="performance" title="Sort by Performance Score">
+                                    <span class="th-content"><span>Performance</span><i data-lucide="arrow-up-down" class="sort-icon"></i></span>
                                 </th>
                                 <th class="sortable-th" data-sort="location" title="Sort by IP & Location">
-                                    <span>IP Address & Location</span>
-                                    <i data-lucide="arrow-up-down" class="sort-icon"></i>
+                                    <span class="th-content"><span>IP & Location</span><i data-lucide="arrow-up-down" class="sort-icon"></i></span>
                                 </th>
                                 <th class="sortable-th" data-sort="os" title="Sort by OS & Browser">
-                                    <span>OS & Browser</span>
-                                    <i data-lucide="arrow-up-down" class="sort-icon"></i>
+                                    <span class="th-content"><span>OS & Browser</span><i data-lucide="arrow-up-down" class="sort-icon"></i></span>
                                 </th>
                                 <th class="sortable-th active-sort desc" data-sort="lastSeen"
                                     title="Sort by Last Active Time">
-                                    <span>Last Active</span>
-                                    <i data-lucide="arrow-down" class="sort-icon"></i>
+                                    <span class="th-content"><span>Last Active</span><i data-lucide="arrow-down" class="sort-icon"></i></span>
                                 </th>
                                 <th class="sortable-th" data-sort="visits" title="Sort by Total Visits">
-                                    <span>Visits</span>
-                                    <i data-lucide="arrow-up-down" class="sort-icon"></i>
+                                    <span class="th-content"><span>Visits</span><i data-lucide="arrow-up-down" class="sort-icon"></i></span>
                                 </th>
                                 <th class="actions-th">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="devices-tbody">
                             <tr>
-                                <td colspan="7" class="table-loading-cell">
+                                <td colspan="8" class="table-loading-cell">
                                     <div class="auth-loading-spinner"></div>
                                     <span>Loading device records from Cloud Firestore...</span>
                                 </td>
@@ -255,83 +236,7 @@
                 </div>
             </div>
 
-            <!-- Tokens View -->
-            <div id="tokens-tab-content" style="display: none;">
-                <!-- Tokens Metrics Summary Grid -->
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <span class="metric-label">Total Tokens</span>
-                            <i data-lucide="key"></i>
-                        </div>
-                        <div id="metric-total-tokens" class="metric-value">--</div>
-                        <div class="metric-footer">Created tokens</div>
-                    </div>
 
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <span class="metric-label">Active Tokens</span>
-                            <span class="live-dot-pulse"></span>
-                        </div>
-                        <div id="metric-active-tokens" class="metric-value">--</div>
-                        <div class="metric-footer">Currently enabled</div>
-                    </div>
-                </div>
-
-                <!-- Create Token Bar -->
-                <div class="controls-bar token-controls-bar">
-                    <form id="create-token-form" class="create-token-form">
-                        <div class="target-select-wrapper" title="Auth Token Type Context">
-                            <i data-lucide="shield" class="target-select-icon"></i>
-                            <select id="token-type-select" class="token-target-select">
-                                <option value="school">School</option>
-                            </select>
-                        </div>
-                        <div class="search-box label-box">
-                            <i data-lucide="tag"></i>
-                            <input type="text" id="token-label-input" placeholder="Token label..." required
-                                autocomplete="off">
-                        </div>
-                        <div class="create-onetime-toggle-group" title="Automatically deactivate token after first use">
-                            <span class="toggle-label-text">One-time use</span>
-                            <label class="ctrl-switch">
-                                <input type="checkbox" id="token-onetime-input">
-                                <span class="ctrl-switch-slider"></span>
-                            </label>
-                        </div>
-                        <button type="submit" id="create-token-btn" class="ctrl-btn primary-btn">
-                            <i data-lucide="plus"></i>
-                            <span>Generate Token</span>
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Auth Tokens Table Container -->
-                <div class="table-container">
-                    <table class="devices-table tokens-table">
-                        <thead>
-                            <tr>
-                                <th>Label</th>
-                                <th>Token</th>
-                                <th>Pre-Verification Link</th>
-                                <th>Status</th>
-                                <th>One-Time</th>
-                                <th>Uses</th>
-                                <th>Created</th>
-                                <th class="actions-th">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tokens-tbody">
-                            <tr>
-                                <td colspan="8" class="table-loading-cell">
-                                    <div class="auth-loading-spinner"></div>
-                                    <span>Loading tokens from Cloud Firestore...</span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </section>
     </main>
 
@@ -359,7 +264,6 @@
                     <button class="tab-btn" data-tab="tab-network">Network & Geo</button>
                     <button class="tab-btn" data-tab="tab-auth">Authentication</button>
                     <button class="tab-btn" data-tab="tab-history">Page History</button>
-                    <button class="tab-btn" data-tab="tab-token-usage">Token Usage</button>
                     <button class="tab-btn" data-tab="tab-json">Raw JSON</button>
                 </div>
 
@@ -373,6 +277,10 @@
                                     placeholder="e.g. Austin's Laptop, Office PC..." />
                                 <button id="detail-save-name-btn" class="ctrl-input-btn">Save Name</button>
                             </div>
+                        </div>
+                        <div class="detail-item" style="grid-column: span 2;">
+                            <span class="detail-label">Device Performance Rating & Metrics</span>
+                            <div id="detail-perf-box" class="detail-perf-box">--</div>
                         </div>
                         <div class="detail-item">
                             <span class="detail-label">Device ID</span>
@@ -521,12 +429,7 @@
                     </div>
                 </div>
 
-                <!-- Tab Content: Token Usage -->
-                <div id="tab-token-usage" class="tab-content">
-                    <div id="token-usage-container" class="history-list">
-                        <p class="empty-history-text">No token usages recorded for this device.</p>
-                    </div>
-                </div>
+
 
                 <!-- Tab Content: Raw JSON -->
                 <div id="tab-json" class="tab-content">
