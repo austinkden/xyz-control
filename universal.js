@@ -4477,7 +4477,159 @@
                 e.stopPropagation();
                 cycleShape();
             }
-        }, true);
+    function initCookieNotice() {
+        const CONSENT_KEY = 'astrong_cookie_consent';
+        if (getRootCookie(CONSENT_KEY) || localStorage.getItem(CONSENT_KEY)) {
+            return;
+        }
+
+        const notice = document.createElement('div');
+        notice.id = 'astrong-cookie-banner';
+        notice.className = 'astrong-cookie-banner';
+        notice.setAttribute('role', 'region');
+        notice.setAttribute('aria-label', 'Cookie and Telemetry Notice');
+
+        notice.innerHTML = `
+            <div class="astrong-cookie-content">
+                <span class="astrong-cookie-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/><path d="M8.5 8.5v.01"/><path d="M16 15.5v.01"/><path d="M12 12v.01"/><path d="M11 17v.01"/><path d="M7 13v.01"/></svg>
+                </span>
+                <p class="astrong-cookie-text">
+                    This site uses essential cookies and automated telemetry to maintain session state, track performance, and diagnose security issues. See our <a href="https://astrong.xyz/privacy" target="_blank" rel="noopener">Privacy Policy</a>.
+                </p>
+            </div>
+            <div class="astrong-cookie-actions">
+                <button type="button" id="astrong-cookie-accept" class="astrong-cookie-btn">Got it</button>
+            </div>
+        `;
+
+        if (!document.getElementById('astrong-cookie-styles')) {
+            const style = document.createElement('style');
+            style.id = 'astrong-cookie-styles';
+            style.textContent = `
+                .astrong-cookie-banner {
+                    position: fixed;
+                    bottom: 1.25rem;
+                    right: 1.25rem;
+                    max-width: 440px;
+                    width: calc(100% - 2.5rem);
+                    background-color: #15131b;
+                    border: 1px solid #383442;
+                    border-radius: 10px;
+                    padding: 1rem 1.15rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 1rem;
+                    z-index: 999999;
+                    box-shadow: none !important;
+                    font-family: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    animation: astrongCookieSlideIn 0.3s ease forwards;
+                    box-sizing: border-box;
+                }
+                @keyframes astrongCookieSlideIn {
+                    from { opacity: 0; transform: translateY(12px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .astrong-cookie-banner.closing {
+                    opacity: 0;
+                    transform: translateY(12px);
+                    transition: opacity 0.25s ease, transform 0.25s ease;
+                }
+                .astrong-cookie-content {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 0.75rem;
+                    flex: 1;
+                    min-width: 0;
+                }
+                .astrong-cookie-icon {
+                    color: #8859ff;
+                    flex-shrink: 0;
+                    margin-top: 2px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    user-select: none;
+                    -webkit-user-select: none;
+                }
+                .astrong-cookie-text {
+                    font-size: 0.82rem;
+                    line-height: 1.45;
+                    color: #cac4d0;
+                    margin: 0;
+                }
+                .astrong-cookie-text a {
+                    color: #8859ff;
+                    text-decoration: underline;
+                    text-underline-offset: 3px;
+                    transition: color 0.15s ease;
+                }
+                .astrong-cookie-text a:hover {
+                    color: #a782ff;
+                }
+                .astrong-cookie-actions {
+                    flex-shrink: 0;
+                    display: flex;
+                    align-items: center;
+                }
+                .astrong-cookie-btn {
+                    background-color: #8859ff;
+                    color: #ffffff;
+                    border: 1px solid #8859ff;
+                    border-radius: 6px;
+                    padding: 0.45rem 0.95rem;
+                    font-size: 0.82rem;
+                    font-weight: 600;
+                    font-family: inherit;
+                    cursor: pointer;
+                    user-select: none;
+                    -webkit-user-select: none;
+                    transition: background-color 0.15s ease, border-color 0.15s ease;
+                    box-shadow: none !important;
+                    white-space: nowrap;
+                }
+                .astrong-cookie-btn:hover {
+                    background-color: #7743f5;
+                    border-color: #7743f5;
+                }
+                @media (max-width: 580px) {
+                    .astrong-cookie-banner {
+                        bottom: 0.75rem;
+                        right: 0.75rem;
+                        left: 0.75rem;
+                        width: auto;
+                        flex-direction: column;
+                        align-items: stretch;
+                        gap: 0.85rem;
+                    }
+                    .astrong-cookie-actions {
+                        justify-content: flex-end;
+                    }
+                    .astrong-cookie-btn {
+                        width: 100%;
+                        text-align: center;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        const dismiss = () => {
+            setRootCookie(CONSENT_KEY, 'true', 365);
+            try { localStorage.setItem(CONSENT_KEY, 'true'); } catch (e) {}
+            notice.classList.add('closing');
+            setTimeout(() => {
+                if (notice && notice.parentNode) notice.parentNode.removeChild(notice);
+            }, 260);
+        };
+
+        const acceptBtn = notice.querySelector('#astrong-cookie-accept');
+        if (acceptBtn) {
+            acceptBtn.addEventListener('click', dismiss);
+        }
+
+        document.body.appendChild(notice);
     }
 
     if (document.readyState === 'loading') {
@@ -4487,6 +4639,7 @@
             initUniversalModals();
             initUniversalFooter();
             initCookieAvatarClip();
+            initCookieNotice();
         });
     } else {
         initCommandPalette();
@@ -4494,5 +4647,6 @@
         initUniversalModals();
         initUniversalFooter();
         initCookieAvatarClip();
+        initCookieNotice();
     }
 })();

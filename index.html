@@ -263,7 +263,6 @@
                     <button class="tab-btn" data-tab="tab-hardware">Hardware & GPU</button>
                     <button class="tab-btn" data-tab="tab-battery">Battery & System</button>
                     <button class="tab-btn" data-tab="tab-network">Network & Geo</button>
-                    <button class="tab-btn" data-tab="tab-auth">Authentication</button>
                     <button class="tab-btn" data-tab="tab-history">Page History</button>
                     <button class="tab-btn" data-tab="tab-json">Raw JSON</button>
                 </div>
@@ -314,6 +313,10 @@
                         <div class="detail-item">
                             <span class="detail-label">Timezone</span>
                             <span id="detail-timezone" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item full-width">
+                            <span class="detail-label">Last Visited Route / Page</span>
+                            <span id="detail-last-page" class="detail-value mono-text" style="color: var(--accent-purple);">--</span>
                         </div>
                     </div>
                 </div>
@@ -416,21 +419,12 @@
                     </div>
                 </div>
 
-                <!-- Tab Content: Authentication -->
-                <div id="tab-auth" class="tab-content">
-                    <div id="auth-container">
-                        <p class="empty-history-text">Loading authentication access...</p>
-                    </div>
-                </div>
-
                 <!-- Tab Content: Page History -->
                 <div id="tab-history" class="tab-content">
                     <div id="history-container" class="history-list">
                         <p class="empty-history-text">No recent page views recorded for this device.</p>
                     </div>
                 </div>
-
-
 
                 <!-- Tab Content: Raw JSON -->
                 <div id="tab-json" class="tab-content">
@@ -441,8 +435,8 @@
     </div>
 
     <!-- Firebase Config & Control Panel Logic -->
-    <script type="module" src="script.js?v=2"></script>
-    <script src="/universal.js?v=2" defer></script>
+    <script type="module" src="script.js?v=3"></script>
+    <script src="/universal.js?v=3" defer></script>
 </body>
 
 </html>

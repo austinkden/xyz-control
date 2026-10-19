@@ -124,10 +124,10 @@ function calculateDevicePerformance(dev) {
     if (!dev) return { compositeScore: 50, standardScore: 50, networkScore: 50, rating: 'Moderate', badgeClass: 'perf-moderate', details: {} };
 
     // Standard Compute Metrics
-    const cores = Number(dev.hardware?.cores || dev.hardware?.hardwareConcurrency || 0);
-    const ram = Number(dev.hardware?.deviceMemory || 0);
-    const dpr = Number(dev.screen?.devicePixelRatio || dev.hardware?.dpr || 1);
-    const renderer = (dev.hardware?.renderer || '').toLowerCase();
+    const cores = Number(dev.hardware?.cpuCores || dev.hardware?.cores || dev.hardware?.hardwareConcurrency || 0);
+    const ram = Number(dev.hardware?.deviceMemoryGB || dev.hardware?.deviceMemory || 0);
+    const dpr = Number(dev.hardware?.pixelRatio || dev.screen?.devicePixelRatio || dev.hardware?.dpr || 1);
+    const renderer = (dev.hardware?.gpuRenderer || dev.hardware?.renderer || '').toLowerCase();
 
     let cpuScore = 70;
     if (cores > 0) {
@@ -213,8 +213,8 @@ function calculateDevicePerformance(dev) {
         rating,
         badgeClass,
         details: {
-            cores: cores || 'Unknown',
-            ram: ram ? `${ram} GB` : 'Unknown',
+            cores: cores ? `${cores}` : (dev.hardware?.cpuCores && dev.hardware?.cpuCores !== 'Unknown' ? `${dev.hardware.cpuCores}` : 'Unknown'),
+            ram: ram ? `${ram} GB` : (dev.hardware?.deviceMemoryGB && dev.hardware?.deviceMemoryGB !== 'Unknown' ? `${dev.hardware.deviceMemoryGB} GB` : 'Unknown'),
             downlink: downlink ? `${downlink} Mbps` : 'Unknown',
             rtt: rtt ? `${rtt} ms` : 'Unknown',
             connType: connType || 'Unknown'
@@ -896,7 +896,7 @@ function renderDevicesTable() {
 
 // 5. Helper Formatting Functions
 function parseSubdomainPageEntry(v) {
-    if (!v) return { url: '', hostname: '', subdomain: 'main', path: '/', displayPath: '/', badgeLabel: 'astrong.xyz', title: '' };
+    if (!v) return { url: '', hostname: '', subdomain: 'main', path: '/', cleanPath: '/', displayPath: '/', badgeLabel: 'astrong.xyz', title: '' };
     
     let urlStr = v.url || '';
     let hostname = v.hostname || '';
@@ -927,11 +927,23 @@ function parseSubdomainPageEntry(v) {
 
     if (!subdomain) subdomain = 'main';
 
+    // Normalize route path (e.g. /qrcode/ -> /qrcode, /starbucks/index.html -> /starbucks)
+    let cleanPath = path || '/';
+    if (cleanPath.endsWith('/index.html')) {
+        cleanPath = cleanPath.slice(0, -11) || '/';
+    }
+    if (cleanPath.length > 1 && cleanPath.endsWith('/')) {
+        cleanPath = cleanPath.slice(0, -1);
+    }
+    if (!cleanPath.startsWith('/')) {
+        cleanPath = '/' + cleanPath;
+    }
+
     if (!displayPath) {
         if (hostname) {
-            displayPath = hostname + (path === '/' ? '' : path);
+            displayPath = hostname + (cleanPath === '/' ? '' : cleanPath);
         } else {
-            displayPath = path || '/';
+            displayPath = cleanPath || '/';
         }
     }
 
@@ -942,6 +954,7 @@ function parseSubdomainPageEntry(v) {
         hostname: hostname,
         subdomain: subdomain,
         path: path,
+        cleanPath: cleanPath,
         displayPath: displayPath,
         badgeLabel: badgeLabel,
         title: title
@@ -1038,10 +1051,10 @@ function openDeviceModal(dev) {
     const views = dev.recentViews || [];
     let lastPageDisplay = '--';
     if (lastPathRaw) {
-        lastPageDisplay = lastPathRaw;
+        lastPageDisplay = lastPathRaw.endsWith('/index.html') ? (lastPathRaw.slice(0, -11) || '/') : (lastPathRaw.length > 1 && lastPathRaw.endsWith('/') ? lastPathRaw.slice(0, -1) : lastPathRaw);
     } else if (views.length > 0) {
         const lastView = parseSubdomainPageEntry(views[views.length - 1]);
-        lastPageDisplay = lastView.displayPath;
+        lastPageDisplay = lastView.cleanPath || lastView.displayPath;
     }
     const lastPageEl = document.getElementById('detail-last-page');
     if (lastPageEl) lastPageEl.textContent = lastPageDisplay;
@@ -1088,6 +1101,7 @@ function openDeviceModal(dev) {
                     <div class="history-item-left">
                         <div class="history-url-row">
                             <span class="subdomain-badge subdomain-${escapeHtml(info.subdomain)}">${escapeHtml(info.badgeLabel)}</span>
+                            <span class="history-path-badge mono-text">${escapeHtml(info.cleanPath)}</span>
                             <span class="history-page-title">${escapeHtml(info.title || info.displayPath)}</span>
                         </div>
                         <div class="history-details-row">
@@ -1100,48 +1114,6 @@ function openDeviceModal(dev) {
             `;
         });
         historyContainer.innerHTML = historyHtml;
-    }
-
-    // Authentication Access Tab
-    const authContainer = document.getElementById('auth-container');
-    if (authContainer) {
-        const isSchoolVerified = !!(dev.authorizations?.schoolSchedule || dev.schoolVerified);
-
-        const schoolStatusBadge = isSchoolVerified
-            ? `<span style="font-size: 0.72rem; font-family: var(--font-mono); font-weight: 700; padding: 0.2rem 0.55rem; background: rgba(52, 199, 89, 0.15); color: #34c759; border-radius: 4px; border: 1px solid rgba(52, 199, 89, 0.3);">ACCESS GRANTED</span>`
-            : `<span style="font-size: 0.72rem; font-family: var(--font-mono); font-weight: 700; padding: 0.2rem 0.55rem; background: rgba(142, 142, 147, 0.15); color: var(--text-muted); border-radius: 4px; border: 1px solid rgba(142, 142, 147, 0.3);">NO ACCESS</span>`;
-
-        const grantedViaText = isSchoolVerified ? 'Password Verification' : 'None';
-
-        authContainer.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
-                <div class="detail-item full-width" style="border-left: 3px solid ${isSchoolVerified ? '#34c759' : 'var(--border-color)'};">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <strong style="color: var(--text-primary); font-size: 0.95rem;">School Schedule Access</strong>
-                            <span class="mono-text" style="font-size: 0.75rem; color: var(--text-muted);">/schedule/school</span>
-                        </div>
-                        ${schoolStatusBadge}
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 0.5rem; font-size: 0.82rem;">
-                        <div>
-                            <span class="detail-label">Verification Method</span>
-                            <div style="color: var(--text-primary); font-weight: 500; margin-top: 0.15rem;">${grantedViaText}</div>
-                        </div>
-                        <div>
-                            <span class="detail-label">Permission Scope</span>
-                            <div style="color: var(--text-primary); font-weight: 500; margin-top: 0.15rem;">Full Schedule View</div>
-                        </div>
-                        <div>
-                            <span class="detail-label">Status</span>
-                            <div style="color: ${isSchoolVerified ? '#34c759' : 'var(--text-muted)'}; font-weight: 600; margin-top: 0.15rem;">
-                                ${isSchoolVerified ? 'Authorized Visitor' : 'Unverified Visitor (Blocked)'}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
     }
 
     // Performance Box in Overview Tab
@@ -1157,16 +1129,22 @@ function openDeviceModal(dev) {
                         <span class="perf-score-rating">${perf.rating} Performance</span>
                     </span>
                 </div>
-                <div class="perf-metric-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.6rem;">
-                    <div class="perf-sub-card" style="background: var(--surface-variant); padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Standard Compute</div>
-                        <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0.15rem 0;">${perf.standardScore}<span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">/100</span></div>
-                        <div style="font-size: 0.78rem; color: var(--text-secondary);">CPU Cores: ${perf.details.cores} | RAM: ${perf.details.ram}</div>
+                <div class="perf-metric-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.75rem;">
+                    <div class="perf-sub-card" style="background: var(--surface-variant); padding: 0.85rem 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em;">Standard Compute</div>
+                        <div style="font-size: 1.35rem; font-weight: 700; color: var(--text-primary); margin: 0.2rem 0;">${perf.standardScore}<span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);"> / 100</span></div>
+                        <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                            <span class="mono-text" style="background: var(--surface-color); padding: 0.2rem 0.55rem; border-radius: 4px; border: 1px solid var(--border-color); font-weight: 600; color: var(--text-primary);">⚡ ${perf.details.cores} Cores</span>
+                            <span class="mono-text" style="background: var(--surface-color); padding: 0.2rem 0.55rem; border-radius: 4px; border: 1px solid var(--border-color); font-weight: 600; color: var(--text-primary);">🧠 ${perf.details.ram} RAM</span>
+                        </div>
                     </div>
-                    <div class="perf-sub-card" style="background: var(--surface-variant); padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Network Speed & Latency</div>
-                        <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0.15rem 0;">${perf.networkScore}<span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">/100</span></div>
-                        <div style="font-size: 0.78rem; color: var(--text-secondary);">Downlink: ${perf.details.downlink} | RTT: ${perf.details.rtt}</div>
+                    <div class="perf-sub-card" style="background: var(--surface-variant); padding: 0.85rem 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em;">Network Speed & Latency</div>
+                        <div style="font-size: 1.35rem; font-weight: 700; color: var(--text-primary); margin: 0.2rem 0;">${perf.networkScore}<span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);"> / 100</span></div>
+                        <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                            <span class="mono-text" style="background: var(--surface-color); padding: 0.2rem 0.55rem; border-radius: 4px; border: 1px solid var(--border-color); font-weight: 600; color: var(--text-primary);">⬇ ${perf.details.downlink}</span>
+                            <span class="mono-text" style="background: var(--surface-color); padding: 0.2rem 0.55rem; border-radius: 4px; border: 1px solid var(--border-color); font-weight: 600; color: var(--text-primary);">⏱ ${perf.details.rtt}</span>
+                        </div>
                     </div>
                 </div>
             </div>
