@@ -722,7 +722,7 @@ function renderDevicesTable() {
     if (filtered.length === 0) {
         devicesTbody.innerHTML = `
             <tr>
-                <td colspan="7" class="table-loading-cell">
+                <td colspan="8" class="table-loading-cell">
                     No devices match the current filters.
                 </td>
             </tr>
@@ -749,6 +749,10 @@ function renderDevicesTable() {
         const statusDisplay = customName ? customName : statusLabel;
         const perf = calculateDevicePerformance(dev);
 
+        const locationStr = (dev.network?.city && dev.network?.city !== 'Unknown')
+            ? `${dev.network.city}${dev.network.country ? `, ${dev.network.country}` : ''}`
+            : (dev.network?.country || 'Unknown');
+
         rowsHtml += `
             <tr data-device-id="${dev.deviceId}">
                 <td>
@@ -772,8 +776,6 @@ function renderDevicesTable() {
                         <span class="perf-score-rating">${perf.rating}</span>
                     </div>
                     <div class="perf-breakdown-sub mono-text">Net ${perf.networkScore} / Std ${perf.standardScore}</div>
-                </td>
-                    <span class="sub-info mono-text">${dev.deviceId || '--'}</span>
                 </td>
                 <td>
                     <div class="mono-text" style="font-weight: 600;">${dev.network?.ip || 'Unknown'}</div>
