@@ -188,9 +188,27 @@
             if (/Mobi|Android|iPhone|iPod/i.test(ua)) deviceType = 'Mobile';
             else if (/Tablet|iPad/i.test(ua) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && osName === 'macOS')) deviceType = 'Tablet';
 
-            // 3. Hardware & Graphics Telemetry
+            // Tab Visibility, Focus Dwell Time & Active Engagement Tracking (Item 6)
+            let activeDwellSec = 0;
+            let backgroundDwellSec = 0;
+            let lastDwellTick = Date.now();
+            setInterval(() => {
+                const now = Date.now();
+                const delta = Math.max(1, Math.round((now - lastDwellTick) / 1000));
+                lastDwellTick = now;
+                if (document.visibilityState === 'visible') {
+                    activeDwellSec += delta;
+                } else {
+                    backgroundDwellSec += delta;
+                }
+            }, 1000);
+
+            // 3. Hardware & Graphics Telemetry (Items 3, 4, 5, 8)
             let gpuVendor = 'Unknown';
             let gpuRenderer = 'Unknown';
+            let maxTextureSize = null;
+            let maxRenderbufferSize = null;
+            let webglExtensionsCount = null;
             try {
                 const canvas = document.createElement('canvas');
                 const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
@@ -200,10 +218,63 @@
                         gpuVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) || 'Unknown';
                         gpuRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || 'Unknown';
                     }
+                    maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) || null;
+                    maxRenderbufferSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || null;
+                    const exts = gl.getSupportedExtensions();
+                    webglExtensionsCount = exts ? exts.length : null;
                 }
             } catch (e) {
                 // WebGL detection fallback
             }
+
+            // Display HDR & Color Gamut Telemetry (Item 3)
+            let hdrSupport = false;
+            let colorGamut = 'sRGB';
+            try {
+                if (window.matchMedia) {
+                    hdrSupport = window.matchMedia('(dynamic-range: high)').matches;
+                    if (window.matchMedia('(color-gamut: rec2020)').matches) {
+                        colorGamut = 'Rec. 2020';
+                    } else if (window.matchMedia('(color-gamut: p3)').matches) {
+                        colorGamut = 'Display P3';
+                    } else if (window.matchMedia('(color-gamut: srgb)').matches) {
+                        colorGamut = 'sRGB';
+                    }
+                }
+            } catch (e) { }
+
+            // Storage Quota Telemetry (Item 4)
+            let storageEstimate = { quotaGB: null, usageMB: null };
+            try {
+                if (navigator.storage && typeof navigator.storage.estimate === 'function') {
+                    const est = await navigator.storage.estimate();
+                    if (est && est.quota) {
+                        storageEstimate.quotaGB = +(est.quota / (1024 * 1024 * 1024)).toFixed(1);
+                    }
+                    if (est && est.usage != null) {
+                        storageEstimate.usageMB = +(est.usage / (1024 * 1024)).toFixed(2);
+                    }
+                }
+            } catch (e) { }
+
+            // Input Device Modality & Pointer Precision (Item 5)
+            let inputModality = 'Unknown';
+            try {
+                if (window.matchMedia) {
+                    const finePointer = window.matchMedia('(pointer: fine)').matches;
+                    const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+                    const canHover = window.matchMedia('(hover: hover)').matches;
+                    if (finePointer && coarsePointer) {
+                        inputModality = canHover ? 'Hybrid (Mouse + Touch)' : 'Hybrid (Touch + Stylus)';
+                    } else if (finePointer) {
+                        inputModality = canHover ? 'Mouse / Trackpad (Fine)' : 'Precision Stylus';
+                    } else if (coarsePointer) {
+                        inputModality = 'Touchscreen (Coarse)';
+                    } else {
+                        inputModality = 'Keyboard / None';
+                    }
+                }
+            } catch (e) { }
 
             // Battery Telemetry
             let batteryInfo = { level: null, charging: null, chargingTime: null, dischargingTime: null };
@@ -388,7 +459,15 @@
                     deviceMemoryGB: navigator.deviceMemory || 'Unknown',
                     maxTouchPoints: navigator.maxTouchPoints || 0,
                     gpuVendor: gpuVendor,
-                    gpuRenderer: gpuRenderer
+                    gpuRenderer: gpuRenderer,
+                    hdrSupport: hdrSupport ? 'Supported (HDR)' : 'SDR Only',
+                    colorGamut: colorGamut,
+                    storageQuotaGB: storageEstimate.quotaGB,
+                    storageUsageMB: storageEstimate.usageMB,
+                    inputModality: inputModality,
+                    maxTextureSize: maxTextureSize,
+                    maxRenderbufferSize: maxRenderbufferSize,
+                    webglExtensionsCount: webglExtensionsCount
                 },
                 preferences: {
                     colorScheme: colorScheme,
@@ -420,7 +499,12 @@
                     updatedAt: serverTimestamp(),
                     visitCount: visitCount,
                     lastPath: window.location.pathname,
-                    lastReferrer: document.referrer || 'Direct'
+                    lastReferrer: document.referrer || 'Direct',
+                    engagement: {
+                        activeDwellSec: activeDwellSec,
+                        backgroundDwellSec: backgroundDwellSec,
+                        tabVisibility: document.visibilityState || 'visible'
+                    }
                 },
                 recentViews: arrayUnion(pageVisitEntry)
             };
@@ -480,7 +564,12 @@
                         meta: {
                             lastSeen: new Date().toISOString(),
                             updatedAt: serverTimestamp(),
-                            lastPath: window.location.pathname
+                            lastPath: window.location.pathname,
+                            engagement: {
+                                activeDwellSec: activeDwellSec,
+                                backgroundDwellSec: backgroundDwellSec,
+                                tabVisibility: document.visibilityState || 'visible'
+                            }
                         },
                         battery: currentBattery,
                         network: {
@@ -491,7 +580,8 @@
                         },
                         hardware: {
                             viewportWidth: window.innerWidth,
-                            viewportHeight: window.innerHeight
+                            viewportHeight: window.innerHeight,
+                            inputModality: inputModality
                         }
                     };
 
@@ -511,14 +601,16 @@
             // Send periodic heartbeat every 30 seconds
             setInterval(sendHeartbeat, 30000);
 
-            // Send immediate heartbeat on visibility or window focus
+            // Send immediate heartbeat on visibility or window focus/blur
             document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') {
-                    sendHeartbeat();
-                }
+                sendHeartbeat();
             });
 
             window.addEventListener('focus', () => {
+                sendHeartbeat();
+            });
+
+            window.addEventListener('blur', () => {
                 sendHeartbeat();
             });
 
@@ -528,7 +620,12 @@
                     meta: {
                         lastSeen: new Date().toISOString(),
                         updatedAt: serverTimestamp(),
-                        lastPath: window.location.pathname
+                        lastPath: window.location.pathname,
+                        engagement: {
+                            activeDwellSec: activeDwellSec,
+                            backgroundDwellSec: backgroundDwellSec,
+                            tabVisibility: document.visibilityState || 'visible'
+                        }
                     },
                     recentViews: arrayUnion({
                         url: window.location.href,

@@ -314,6 +314,14 @@
                             <span class="detail-label">Timezone</span>
                             <span id="detail-timezone" class="detail-value">--</span>
                         </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Active Dwell Time</span>
+                            <span id="detail-dwell-time" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Primary Input</span>
+                            <span id="detail-input-overview" class="detail-value">--</span>
+                        </div>
                         <div class="detail-item full-width">
                             <span class="detail-label">Last Visited Route / Page</span>
                             <span id="detail-last-page" class="detail-value mono-text" style="color: var(--accent-purple);">--</span>
@@ -349,8 +357,36 @@
                             <span id="detail-ram" class="detail-value">--</span>
                         </div>
                         <div class="detail-item">
+                            <span class="detail-label">Storage Capacity (Quota)</span>
+                            <span id="detail-storage-quota" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Input Modality & Precision</span>
+                            <span id="detail-input-modality" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Display HDR Support</span>
+                            <span id="detail-hdr" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Color Gamut</span>
+                            <span id="detail-color-gamut" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item">
                             <span class="detail-label">Max Touch Points</span>
                             <span id="detail-touch-points" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Max 2D Texture Size</span>
+                            <span id="detail-max-texture" class="detail-value mono-text">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Max Renderbuffer Size</span>
+                            <span id="detail-max-renderbuffer" class="detail-value mono-text">--</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">WebGL Extensions</span>
+                            <span id="detail-webgl-exts" class="detail-value">--</span>
                         </div>
                         <div class="detail-item full-width">
                             <span class="detail-label">GPU Vendor & Renderer</span>
@@ -375,6 +411,10 @@
                             <span id="detail-orientation" class="detail-value">--</span>
                         </div>
                         <div class="detail-item">
+                            <span class="detail-label">Tab Visibility State</span>
+                            <span id="detail-tab-visibility" class="detail-value">--</span>
+                        </div>
+                        <div class="detail-item">
                             <span class="detail-label">Color Scheme Pref</span>
                             <span id="detail-color-scheme" class="detail-value">--</span>
                         </div>
@@ -382,7 +422,7 @@
                             <span class="detail-label">Reduced Motion</span>
                             <span id="detail-reduced-motion" class="detail-value">--</span>
                         </div>
-                        <div class="detail-item">
+                        <div class="detail-item full-width">
                             <span class="detail-label">Bot / WebDriver</span>
                             <span id="detail-bot-status" class="detail-value">--</span>
                         </div>
@@ -435,8 +475,8 @@
     </div>
 
     <!-- Firebase Config & Control Panel Logic -->
-    <script type="module" src="script.js?v=3"></script>
-    <script src="/universal.js?v=3" defer></script>
+    <script type="module" src="script.js?v=4"></script>
+    <script src="/universal.js?v=4" defer></script>
 </body>
 
 </html>

@@ -158,6 +158,12 @@ function calculateDevicePerformance(dev) {
             gpuScore = 35;
         }
     }
+    if (dev.hardware?.maxTextureSize) {
+        const texSize = Number(dev.hardware.maxTextureSize);
+        if (texSize >= 16384) gpuScore = Math.max(gpuScore, 92);
+        else if (texSize >= 8192) gpuScore = Math.max(gpuScore, 80);
+        else if (texSize <= 4096) gpuScore = Math.min(gpuScore, 50);
+    }
     if (dpr > 2) gpuScore = Math.min(100, gpuScore + 5);
 
     const standardScore = Math.round(0.45 * cpuScore + 0.40 * ramScore + 0.15 * gpuScore);
@@ -1047,6 +1053,35 @@ function openDeviceModal(dev) {
     document.getElementById('detail-language').textContent = dev.browser?.language || '--';
     document.getElementById('detail-timezone').textContent = dev.locale?.timeZone || '--';
 
+    // Dwell Time & Active Engagement (Item 6)
+    function formatDwellTime(sec) {
+        if (!sec || sec < 1) return '< 1s';
+        if (sec < 60) return `${sec}s`;
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        if (m < 60) return s > 0 ? `${m}m ${s}s` : `${m}m`;
+        const h = Math.floor(m / 60);
+        const remM = m % 60;
+        return remM > 0 ? `${h}h ${remM}m` : `${h}h`;
+    }
+
+    const engagement = dev.meta?.engagement;
+    let dwellDisplay = '--';
+    if (engagement) {
+        const act = formatDwellTime(engagement.activeDwellSec || 0);
+        if (engagement.backgroundDwellSec && engagement.backgroundDwellSec > 0) {
+            const bg = formatDwellTime(engagement.backgroundDwellSec);
+            dwellDisplay = `${act} active (${bg} background)`;
+        } else {
+            dwellDisplay = `${act} active`;
+        }
+    }
+    const dwellEl = document.getElementById('detail-dwell-time');
+    if (dwellEl) dwellEl.textContent = dwellDisplay;
+
+    const inputOverEl = document.getElementById('detail-input-overview');
+    if (inputOverEl) inputOverEl.textContent = dev.hardware?.inputModality || '--';
+
     const lastPathRaw = dev.meta?.lastPath || '';
     const views = dev.recentViews || [];
     let lastPageDisplay = '--';
@@ -1066,7 +1101,47 @@ function openDeviceModal(dev) {
     document.getElementById('detail-dpr').textContent = `${dev.hardware?.pixelRatio}x`;
     document.getElementById('detail-cpu-cores').textContent = `${dev.hardware?.cpuCores} Cores`;
     document.getElementById('detail-ram').textContent = `${dev.hardware?.deviceMemoryGB} GB`;
-    document.getElementById('detail-touch-points').textContent = dev.hardware?.maxTouchPoints;
+
+    // Storage Quota (Item 4)
+    const storageEl = document.getElementById('detail-storage-quota');
+    if (storageEl) {
+        if (dev.hardware?.storageQuotaGB != null) {
+            const usedStr = dev.hardware?.storageUsageMB != null ? ` (${dev.hardware.storageUsageMB} MB used)` : '';
+            storageEl.textContent = `~${dev.hardware.storageQuotaGB} GB quota${usedStr}`;
+        } else {
+            storageEl.textContent = 'Not Available / Restricted';
+        }
+    }
+
+    // Input Modality (Item 5)
+    const inputModEl = document.getElementById('detail-input-modality');
+    if (inputModEl) inputModEl.textContent = dev.hardware?.inputModality || '--';
+
+    // Display HDR & Gamut (Item 3)
+    const hdrEl = document.getElementById('detail-hdr');
+    if (hdrEl) hdrEl.textContent = dev.hardware?.hdrSupport || '--';
+
+    const gamutEl = document.getElementById('detail-color-gamut');
+    if (gamutEl) gamutEl.textContent = dev.hardware?.colorGamut || '--';
+
+    document.getElementById('detail-touch-points').textContent = dev.hardware?.maxTouchPoints ?? '--';
+
+    // WebGL Capabilities (Item 8)
+    const maxTexEl = document.getElementById('detail-max-texture');
+    if (maxTexEl) {
+        maxTexEl.textContent = dev.hardware?.maxTextureSize ? `${Number(dev.hardware.maxTextureSize).toLocaleString()} px` : '--';
+    }
+
+    const maxRbEl = document.getElementById('detail-max-renderbuffer');
+    if (maxRbEl) {
+        maxRbEl.textContent = dev.hardware?.maxRenderbufferSize ? `${Number(dev.hardware.maxRenderbufferSize).toLocaleString()} px` : '--';
+    }
+
+    const webglExtsEl = document.getElementById('detail-webgl-exts');
+    if (webglExtsEl) {
+        webglExtsEl.textContent = dev.hardware?.webglExtensionsCount != null ? `${dev.hardware.webglExtensionsCount} extensions supported` : '--';
+    }
+
     document.getElementById('detail-gpu').textContent = `${dev.hardware?.gpuVendor || 'Unknown'} / ${dev.hardware?.gpuRenderer || 'Unknown'}`;
 
     // Battery & System Tab
@@ -1075,6 +1150,16 @@ function openDeviceModal(dev) {
     document.getElementById('detail-battery-level').textContent = battLevel;
     document.getElementById('detail-battery-charging').textContent = battCharging;
     document.getElementById('detail-orientation').textContent = dev.preferences?.orientation || 'Unknown';
+
+    // Tab Visibility State (Item 6)
+    const tabVisEl = document.getElementById('detail-tab-visibility');
+    if (tabVisEl) {
+        const vis = engagement?.tabVisibility;
+        if (vis === 'visible') tabVisEl.textContent = 'Foreground (Visible) 🟢';
+        else if (vis === 'hidden') tabVisEl.textContent = 'Background (Hidden) ⚪';
+        else tabVisEl.textContent = vis ? String(vis).toUpperCase() : '--';
+    }
+
     document.getElementById('detail-color-scheme').textContent = dev.preferences?.colorScheme ? dev.preferences.colorScheme.toUpperCase() : 'Unknown';
     document.getElementById('detail-reduced-motion').textContent = dev.preferences?.reducedMotion != null ? (dev.preferences.reducedMotion ? 'Enabled' : 'Disabled') : 'Disabled';
     document.getElementById('detail-bot-status').textContent = dev.browser?.webdriver ? 'Automated WebDriver Bot 🤖' : 'Normal User Browser';
