@@ -4574,6 +4574,9 @@
                 e.stopPropagation();
                 cycleShape();
             }
+        }, true);
+    }
+
     function initCookieNotice() {
         const CONSENT_KEY = 'astrong_cookie_consent';
         if (getRootCookie(CONSENT_KEY) || localStorage.getItem(CONSENT_KEY)) {
